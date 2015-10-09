@@ -43,12 +43,18 @@ var cbl = (function () {
         \***********************************************/
         
         // Cut the image into separate blobs where each distinct color is a blob
-        segmentBlob : function (minPixels, maxPixels, debugElement) {
+        segmentBlob : function (minPixels, maxPixels, segmentWidth, segmentHeight, debugElement) {
             if (typeof minPixels === 'undefined') {
                 minPixels = 1;
             }
             if (typeof maxPixels === 'undefined') {
                 maxPixels = 100000;
+            }
+            if (typeof segmentWidth === 'undefined') {
+                segmentWidth = 32;
+            }
+            if (typeof segmentHeight === 'undefined') {
+                segmentHeight = 32;
             }
             
             var image = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);    
@@ -75,6 +81,10 @@ var cbl = (function () {
                 var blobContext = blob.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
                 var blobData = blobContext.data;
                 var pixels = 0;
+                var leftmost = image.width;
+                var rightmost = 0;
+                var topmost = image.height;
+                var bottommost = 0;
                 
                 for (var x = 0; x < image.width; x++) {
                     for (var y = 0; y < image.height; y++) {
@@ -85,7 +95,21 @@ var cbl = (function () {
                             blobData[i + 1] = 0;
                             blobData[i + 2] = 0;
                             blobData[i + 3] = 255;
+                            
                             pixels++;
+                            
+                            if (x < leftmost) {
+                                leftmost = x;
+                            }
+                            if (x > rightmost) {
+                                rightmost = x;
+                            }
+                            if (y < topmost) {
+                                topmost = y;
+                            }
+                            if (y > bottommost) {
+                                bottommost = y;
+                            }
                         } else {
                             blobData[i] = 255;
                             blobData[i + 1] = 255;
@@ -97,7 +121,11 @@ var cbl = (function () {
                 
                 // Only save blobs of a certain size
                 if (pixels >= minPixels && pixels <= maxPixels) {
-                    blob.getContext('2d').putImageData(blobContext, 0, 0);   
+                    blob.width = segmentWidth;
+                    blob.height = segmentHeight;
+                    blob.getContext('2d').putImageData(blobContext, -leftmost, -topmost, leftmost, topmost, segmentWidth, segmentHeight);
+                    blob.getContext('2d').drawImage(blob, 0, 0, segmentWidth * segmentWidth / (rightmost - leftmost + 1), segmentHeight * segmentHeight / (bottommost - topmost + 1));
+                                        
                     blobs.push(blob);
                         
                     if (typeof debugElement !== 'undefined') {

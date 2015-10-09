@@ -12,9 +12,9 @@
         cbl.load("testImage", function() {
             //cbl.grayscale();
             //cbl.binarize(230);
-            cbl.floodfill(2, 2, cbl.color(255, 255, 255), 128);
+            //cbl.floodfill(2, 2, cbl.color(255, 255, 255), 128);
             cbl.colorRegions(50);
-            cbl.segmentBlob(50, 300, "testDiv");
+            cbl.segmentBlob(50, 300, 25, 25, "testDiv");
             cbl.display("testImage");
         });
     </script>
