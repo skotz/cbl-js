@@ -1,2 +1,2 @@
 # cbl-js
-JavaScript CAPTCHA Breaking Library
+CAPTCHA Breaking Library in pure JavaScript

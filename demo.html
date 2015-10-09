@@ -1,0 +1,22 @@
+<!doctype html>
+<html>
+<head>
+    <title>CBL-js Demo</title>
+    <script type="text/javascript" src="cbl.js"></script>
+</head>
+<body>
+    <img id="testImage" src="captchas/cryptographp/2dg9.gif" />
+    <div id="testDiv">
+    </div>
+    <script>
+        cbl.load("testImage", function() {
+            //cbl.grayscale();
+            //cbl.binarize(230);
+            cbl.floodfill(2, 2, cbl.color(255, 255, 255), 128);
+            cbl.colorRegions(50);
+            cbl.segmentBlob(50, 300, "testDiv");
+            cbl.display("testImage");
+        });
+    </script>
+</body>
+</html>
