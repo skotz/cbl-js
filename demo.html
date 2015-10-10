@@ -3,20 +3,50 @@
 <head>
     <title>CBL-js Demo</title>
     <script type="text/javascript" src="cbl.js"></script>
+    <style>
+        #debugPreprocessed img, 
+        #debugSegmented img {
+            margin-right: 5px;
+            border: 1px solid #DDDDDD;
+        }
+        #training {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #EEEEEE;
+        }
+    </style>
 </head>
 <body>
     <img id="testImage" src="captchas/cryptographp/2dg9.gif" />
-    <div id="testDiv">
+    <div id="debugPreprocessed"></div>
+    <div id="debugSegmented"></div>
+    <div id="training">
+        <p>Type the letter of the sample you see to train the solver.</p>
+        <img id="imgPattern" />
+        <input id="txtSolution" type="text" />
     </div>
+    <a href="javascript: void(0);" onclick="alert(cbl.solve('testImage'))">Solve</a>
     <script>
-        cbl.load("testImage", function() {
-            //cbl.grayscale();
-            //cbl.binarize(230);
-            //cbl.floodfill(2, 2, cbl.color(255, 255, 255), 128);
-            cbl.colorRegions(50);
-            cbl.segmentBlob(50, 300, 25, 25, "testDiv");
-            cbl.display("testImage");
+        var cbl = new CBL({
+            preprocess: function() {
+                cbl.binarize(220);
+                cbl.colorRegions(50);
+                cbl.debugImage("debugPreprocessed");
+            },
+            blob_min_pixels: 50,
+            blob_max_pixels: 350,
+            pattern_width: 20,
+            pattern_height: 20,
+            blob_debug: "debugSegmented"
         });
+        
+        cbl.train("captchas/cryptographp/2dg9.gif", "imgPattern", "txtSolution", 
+            function() { 
+                document.getElementById("training").style.display = 'none';
+            });
+        
+        // cbl.solve("captchas/cryptographp/2dg9.gif");        
+        // cbl.solve("captchas/cryptographp/gpew.gif");
     </script>
 </body>
 </html>

@@ -1,40 +1,161 @@
 /*
- * CBL-js (CAPTCHA Breaking Library - JavaScript)
- * Copyright (c) Scott Clayton
+ * CBL-js (CAPTCHA Breaking Library in JavaScript)
+ * Copyright (c) 2015 Scott Clayton
  */
-var cbl = (function () {
+ 
+var CBL = function (options) {
 
-    var locked = false;
-    var canvas;
+    var defaults = {
+        preprocess: function() { console.warn("CBL: You should define a preprocess method!"); },        
+        blob_min_pixels: 1,
+        blob_max_pixels: 99999,
+        pattern_width: 20,
+        pattern_height: 20,
+        blob_debug: ""
+    };
+
+    options = options || {};
+    for (var opt in defaults) {
+        if (defaults.hasOwnProperty(opt) && !options.hasOwnProperty(opt)) {
+            options[opt] = defaults[opt];
+        }
+    }
 
     var obj = {
         
-        // Load an image
-        load : function (el, callback) {
-            var image = document.getElementById(el);
-            image.onload = function() {
+        /***********************************************\
+        | General Methods                               |
+        \***********************************************/
+        
+        // Load an image and attempt to solve it based on trained model
+        solve : function (el) {
+            return obj.train(el);
+        },
+        
+        // Load an image and attempt to solve it based on trained model
+        train : function (el, patternElementID, humanSolutionElementID, onComplete) {
+            var solution = "";
+            var image;
+            if (document.getElementById(el) != null) {
+                image = document.getElementById(el);
+            } else {
+                image = document.createElement("img");
+                image.src = el;
+            }
+            var afterLoad = function() {
                 if (!locked) {
                     locked = true;
                     canvas = document.createElement('canvas');
                     canvas.width = image.width;
                     canvas.height = image.height;
-                    canvas.getContext('2d').drawImage(image, 0, 0);                    
-                    callback();
+                    canvas.getContext('2d').drawImage(image, 0, 0);  
+                    
+                    // Run user-specified image preprocessing
+                    options.preprocess();
+                    
+                    // Run segmentation
+                    var blobs = obj.segmentBlobs(options.blob_min_pixels, 
+                                                 options.blob_max_pixels, 
+                                                 options.pattern_width, 
+                                                 options.pattern_height, 
+                                                 options.blob_debug);
+                    
+                    // FOR TRAINING
+                    // Set up a list of patterns for a human to classify
+                    if (typeof patternElementID !== 'undefined' && typeof humanSolutionElementID !== 'undefined' && blobs.length) {
+                        for (var i = 0; i < blobs.length; i++) {
+                            pendingPatterns.push({
+                                imgSrc: blobs[i].toDataURL(),
+                                pattern: blobToPattern(blobs[i]),
+                                imgId: patternElementID,
+                                txtId: humanSolutionElementID,
+                                self: obj,
+                                onComplete: onComplete
+                            });
+                        }
+                        
+                        // Load first pattern
+                        obj.loadNextPattern();
+                    }
+                    // FOR SOLVING
+                    // Solve an image buy comparing each blob against our model of learned patterns
+                    else {
+                        for (var i = 0; i < blobs.length; i++) {
+                            solution += findBestMatch(blobToPattern(blobs[i]));
+                        }
+                        console.log("CBL: Solution = " + solution)
+                    }
+                        
+                    obj.reset();
                 }
-            }            
-            return this;
+            };
+            if (image.complete) {
+                afterLoad();
+            }
+            else {
+                image.onload = afterLoad();
+            }
+            return solution;
+        },
+        
+        // Load the next pattern pending human classification
+        loadNextPattern: function() {
+            var nextPattern = pendingPatterns.pop();
+            if (nextPattern) {
+                console.log("CBL: Loading a pattern for human classification.");
+                document.getElementById(nextPattern.imgId).src = nextPattern.imgSrc;
+                document.getElementById(nextPattern.txtId).focus();
+                document.getElementById(nextPattern.txtId).onkeyup = function() {
+                    model.push({
+                        pattern: nextPattern.pattern,
+                        solution: document.getElementById(nextPattern.txtId).value
+                    });
+                    console.log("CBL: Added \"" + document.getElementById(nextPattern.txtId).value + "\" pattern to model!");
+                    document.getElementById(nextPattern.txtId).value = "";
+                    
+                    // Load the next pattern
+                    if (pendingPatterns.length) {
+                        nextPattern.self.loadNextPattern();
+                    }
+                    else {
+                        document.getElementById(nextPattern.txtId).onkeyup = function () { };
+                        if (typeof nextPattern.onComplete === 'function') {
+                            nextPattern.onComplete();
+                        }
+                    }
+                };
+            } 
+        },
+        
+        // Load a model by deserializing a model string
+        loadModel: function (modelString) {
+            model = modelString; // TODO
+        },
+        
+        // Serialize the model
+        saveModel: function () {
+            return model; // TODO
         },
         
         // Unload an image
-        reset : function (el, callback) {
+        reset: function (el, callback) {
             locked = false;
             canvas = null;
             return this;
         },
         
         // Display an image in an image tag
-        display : function (el) {         
+        display: function (el) {         
             document.getElementById(el).src = canvas.toDataURL();      
+            return this;
+        },
+        
+        // Displays the canvas as an image in another element
+        debugImage: function (debugElement) {
+            var test = document.createElement("img");
+            test.src = canvas.toDataURL();
+            // test.border = 1;
+            document.getElementById(debugElement).appendChild(test);
             return this;
         },
         
@@ -43,7 +164,7 @@ var cbl = (function () {
         \***********************************************/
         
         // Cut the image into separate blobs where each distinct color is a blob
-        segmentBlob : function (minPixels, maxPixels, segmentWidth, segmentHeight, debugElement) {
+        segmentBlobs : function (minPixels, maxPixels, segmentWidth, segmentHeight, debugElement) {
             if (typeof minPixels === 'undefined') {
                 minPixels = 1;
             }
@@ -51,10 +172,10 @@ var cbl = (function () {
                 maxPixels = 100000;
             }
             if (typeof segmentWidth === 'undefined') {
-                segmentWidth = 32;
+                segmentWidth = 20;
             }
             if (typeof segmentHeight === 'undefined') {
-                segmentHeight = 32;
+                segmentHeight = 20;
             }
             
             var image = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);    
@@ -128,59 +249,18 @@ var cbl = (function () {
                                         
                     blobs.push(blob);
                         
-                    if (typeof debugElement !== 'undefined') {
+                    if (typeof debugElement !== 'undefined' && debugElement.length) {
                         console.log("CBL: Blob size = " + pixels);
                         var test = document.createElement("img");
                         test.src = blob.toDataURL();
-                        test.border = 1;
+                        // test.border = 1;
                         document.getElementById(debugElement).appendChild(test);
                     }
                 }
             }
             
-            return this;
+            return blobs;
         },
-        
-        //// Cut the image into separate blobs
-        //segmentBox : function () { 
-        //    var image = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);       
-        //    var blobs = new Array();
-        //    var left = 0;
-        //    var right = 0;
-        //    var prevVerticalBreak = true;
-        //    for (var x = 0; x < image.width; x++) {
-        //        var verticalBreak = true;
-        //        for (var y = 0; y < image.height; y++) {
-        //            var i = x * 4 + y * 4 * image.width;
-        //            if (image.data[i] != 255) {
-        //                verticalBreak = false;
-        //                break;
-        //            }
-        //        }
-        //        if (verticalBreak) {
-        //            if (prevVerticalBreak) {
-        //                left = x;
-        //            } else {
-        //                right = x - 1;
-        //                
-        //                var blob = document.createElement('canvas');
-        //                blob.width = right - left;
-        //                blob.height = canvas.height;
-        //                blob.getContext('2d').drawImage(canvas, -left - 1, 0);    
-        //                
-        //                blobs.push(blob.toDataURL());
-        //                
-        //                console.log(blob.toDataURL())
-        //                var test = document.createElement("img");
-        //                test.src = blob.toDataURL();
-        //                test.border = 1;
-        //                document.getElementById("testDiv").appendChild(test);
-        //            }
-        //        }
-        //        prevVerticalBreak = verticalBreak;
-        //    }
-        //    return this;
-        //},
         
         /***********************************************\
         | Image Manipulation Methods                    |
@@ -195,7 +275,7 @@ var cbl = (function () {
                     var i = x * 4 + y * 4 * image.width;
                     // If the pixel is grayscale (not already colored)
                     if (!arrayContains(exclusions, i)) {
-                        cbl.floodfill(x, y, getRandomColor(), tolerance, image, exclusions);
+                        obj.floodfill(x, y, getRandomColor(), tolerance, image, exclusions);
                     }
                 }
             }
@@ -294,9 +374,55 @@ var cbl = (function () {
     };
     
     /***********************************************\
-    | Private Helper Methods                        |
+    | Private Variables and Helper Methods          |
     \***********************************************/
     
+    var model = new Array();
+    var pendingPatterns = new Array();
+    
+    var locked = false;
+    var canvas;
+    
+    // Find the best match for a pattern in the current model
+    var findBestMatch = function (pattern) {
+        var best = 4000000000;
+        var solution = "?";
+        for (var i = 0; i < model.length; i++) {
+            var test = getPatternDifference(model[i].pattern, pattern);
+            if (test < best) {
+                best = test;
+                solution = model[i].solution;
+            }
+        }
+        return solution;
+    };
+    
+    // Convert a blob to a pattern object
+    var blobToPattern = function (blob) {
+        var pattern = new Array();
+        var image = blob.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
+        for (var x = 0; x < image.width; x++) {
+            for (var y = 0; y < image.height; y++) {
+                var i = x * 4 + y * 4 * image.width;
+                var brightness = Math.round(0.34 * image.data[i] + 0.5 * image.data[i + 1] + 0.16 * image.data[i + 2]);
+                pattern.push(brightness);
+            }
+        }
+        return pattern.join('.');
+    };
+    
+    // Get a value indicating how different two patterns are using the root mean square distance formula
+    var getPatternDifference = function (p1, p2) {
+        var pattern1 = p1.split('.');
+        var pattern2 = p2.split('.');
+        var diff = 0;
+        for (var i = 0; i < pattern1.length; i++) {
+            diff += (pattern1[i] - pattern2[i]) * (pattern1[i] - pattern2[i]);
+        }
+        return Math.sqrt(diff / pattern1.length);
+    };
+    
+    // Compare two pixels
     var pixelCompare = function (i, targetcolor, targettotal, fillcolor, data, length, tolerance) {
         if (i < 0 || i >= length) {
             // Out of bounds
@@ -338,6 +464,7 @@ var cbl = (function () {
         return false; 
     };
 
+    // Compare two pixels and set the value if within set rules
     var pixelCompareAndSet = function (i, targetcolor, targettotal, fillcolor, data, length, tolerance, exclusions) {
         if (pixelCompare(i, targetcolor, targettotal, fillcolor, data, length, tolerance)) {
             if (typeof exclusions !== 'undefined') {
@@ -379,4 +506,4 @@ var cbl = (function () {
     
     return obj;
 
-})();
+};
