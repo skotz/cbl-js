@@ -1,0 +1,39 @@
+<!doctype html>
+<html>
+<head>
+    <title>CBL-js Example :: CryptograPHP CAPTCHA Solver</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="cryptographp.css" />
+    <script type="text/javascript" src="../../cbl.min.js"></script>
+</head>
+<body>
+    <div class="main">
+        <img id="testImage" src="2dg9.gif" />
+        <div id="debugPreprocessed"></div>
+        <div id="debugSegmented"></div>
+        <a id="aSolve" href="javascript: void(0);" onclick="document.getElementById('solution').innerHTML = cbl.solve('testImage')">Solve</a>
+        <div id="solution"></div>
+    </div>
+    <div class="foot">
+        <a href="https://github.com/skotz/cbl-js">CBL-js</a> &bull; Scott Clayton
+    </div>
+    <script>
+        var cbl = new CBL({
+            preprocess: function() {
+                cbl.binarize(220);
+                cbl.colorRegions(50);
+                cbl.debugImage("debugPreprocessed");
+            },
+            model_file: "cryptographp-model.txt",
+            blob_min_pixels: 50,
+            blob_max_pixels: 350,
+            pattern_width: 20,
+            pattern_height: 20,
+            blob_debug: "debugSegmented",
+            model_loaded: function() {
+                document.getElementById("aSolve").style.display = "inline-block";
+            }
+        });
+    </script>
+</body>
+</html>
