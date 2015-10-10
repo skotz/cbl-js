@@ -12,12 +12,14 @@
         <div id="debugPreprocessed"></div>
         <div id="debugSegmented"></div>
         <a id="aSolve" href="javascript: void(0);" onclick="document.getElementById('solution').innerHTML = cbl.solve('testImage')">Solve</a>
+        <a id="nextImage" href="javascript: void(0);" onclick="newImage()">New Image</a>
         <div id="solution"></div>
     </div>
     <div class="foot">
         <a href="https://github.com/skotz/cbl-js">CBL-js</a> &bull; Scott Clayton
     </div>
     <script>
+        // Once you train a model this is all you need to solve a CAPTCHA.
         var cbl = new CBL({
             preprocess: function() {
                 cbl.binarize(220);
@@ -34,6 +36,18 @@
                 document.getElementById("aSolve").style.display = "inline-block";
             }
         });
+        
+        // Yeah... Only have a few images for testing. I'll get an actually dynamic CAPTCHA sample up soon.
+        var testImages = ["img/A6ET.gif", "img/B3HE.gif", "img/GRPH.gif"];
+        var newImage = function () {
+            var next = testImages.pop();
+            if (next.length) {
+                document.getElementById("testImage").src = next;
+            }
+            if (testImages.length == 0) {
+                document.getElementById("nextImage").style.display = "none";
+            }
+        };
     </script>
 </body>
 </html>
