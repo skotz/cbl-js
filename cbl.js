@@ -77,6 +77,7 @@ var CBL = function (options) {
                         // Load first pattern
                         obj.loadNextPattern();
                     }
+                    
                     // FOR SOLVING
                     // Solve an image buy comparing each blob against our model of learned patterns
                     else {
@@ -129,12 +130,29 @@ var CBL = function (options) {
         
         // Load a model by deserializing a model string
         loadModel: function (modelString) {
-            model = modelString; // TODO
+            model = new Array();
+            var patterns = modelString.replace(/\[/g, "").split("]");
+            for (var i = 0; i < patterns.length; i++) {
+                var parts = patterns[i].split("=");
+                if (parts.length == 2) {
+                    var p = parts[1];
+                    var s = parts[0];
+                    model.push({
+                        pattern: p,
+                        solution: s
+                    });
+                }
+            }
+            console.log("CBL: Model loaded with " + model.length + " patterns!")
         },
         
         // Serialize the model
         saveModel: function () {
-            return model; // TODO
+            var str = "";
+            for (var i = 0; i < model.length; i++) {
+                str += "[" + model[i].solution + "=" + model[i].pattern + "]";
+            }
+            return str;
         },
         
         // Unload an image
