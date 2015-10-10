@@ -7,6 +7,9 @@
     <script type="text/javascript" src="js/cbl.min.js"></script>
 </head>
 <body>
+    <div class="head">
+        JavaScript CAPTCHA Solver
+    </div>
     <div class="main">
         <img id="testImage" src="img/2DG9.gif" />
         <div id="debugPreprocessed"></div>
@@ -14,6 +17,10 @@
         <a id="aSolve" href="javascript: void(0);" onclick="document.getElementById('solution').innerHTML = cbl.solve('testImage')">Solve</a>
         <a id="nextImage" href="javascript: void(0);" onclick="newImage()">New Image</a>
         <div id="solution"></div>
+    </div>
+    <div class="expl">
+        CBL-js provides a framework for preprocessing and segmenting images, training classifiers, and solving CAPTCHAs.
+        It's written in pure JavaScript, utilizes the HTML5 canvas object, and is available on GitHub.
     </div>
     <div class="foot">
         <a href="https://github.com/skotz/cbl-js">CBL-js</a> &bull; Scott Clayton
@@ -43,6 +50,9 @@
             var next = testImages.pop();
             if (next.length) {
                 document.getElementById("testImage").src = next;
+                document.getElementById('solution').innerHTML = "";
+                document.getElementById('debugPreprocessed').innerHTML = "";
+                document.getElementById('debugSegmented').innerHTML = "";
             }
             if (testImages.length == 0) {
                 document.getElementById("nextImage").style.display = "none";
