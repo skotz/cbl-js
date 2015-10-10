@@ -6,9 +6,13 @@ img {
     margin-bottom: 15px;
     border: 1px solid #DDDDDD;
 }
+body {
+    padding: 0;
+    margin: 0;
+}
 .main,
 .foot {
-    width: 360px;
+    width: 320px;
     margin: 0 auto;
     text-align: center;
 }
