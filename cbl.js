@@ -360,7 +360,6 @@ var CBL = function (options) {
                     blob.width = segmentWidth;
                     blob.height = segmentHeight;
                     blob.getContext('2d').putImageData(blobContext, -leftmost, -topmost, leftmost, topmost, segmentWidth, segmentHeight);
-                    
                     if (options.pattern_maintain_ratio) {
                         var dWidth = rightmost - leftmost;
                         var dHeight = bottommost - topmost;
@@ -532,7 +531,6 @@ var CBL = function (options) {
         var best = 4000000000;
         var solution = "?";
         for (var i = 0; i < model.length; i++) {
-            log(model[i].pattern.length + " - " + pattern.length)
             var test = getPatternDifference(model[i].pattern, pattern);
             if (test < best) {
                 best = test;
