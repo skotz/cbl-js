@@ -19,6 +19,7 @@ var CBL = function (options) {
         blob_debug: "",
         allow_console_log: false,
         allow_console_warn: true,
+        perceptive_colorspace: false,
         character_set: "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
     };
 
@@ -451,6 +452,18 @@ var CBL = function (options) {
             }
         },
         
+        // Blur the image
+        blur : function () {
+            var amount = 1;
+            var ctx = canvas.getContext('2d');
+            ctx.globalAlpha = 0.3;
+
+            for (var i = 1; i <= 8; i++) {
+                ctx.drawImage(canvas, amount, 0, canvas.width - amount, canvas.height, 0, 0, canvas.width - amount, canvas.height);
+                ctx.drawImage(canvas, 0, amount, canvas.width, canvas.height - amount, 0, 0, canvas.width, canvas.height - amount);
+            }
+        },
+        
         // Convert the image to grayscale        
         grayscale : function () { 
             var image = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);        
@@ -539,40 +552,35 @@ var CBL = function (options) {
     
     // Compare two pixels
     var pixelCompare = function (i, targetcolor, targettotal, fillcolor, data, length, tolerance) {
+        // Out of bounds?
         if (i < 0 || i >= length) {
-            // Out of bounds
             return false; 
         }
         
-        //if (data[i + 3] === 0) {
-        //    // Transparent
-        //    return true;  
-        //}
+        var cNew = dataToColor(targetcolor, 0);
+        var cOld = dataToColor(data, i);
+        var cFill = fillcolor;
         
-        if (
-            targetcolor[0] === fillcolor.r && 
-            targetcolor[1] === fillcolor.g && 
-            targetcolor[2] === fillcolor.b) {
-            // Target is same as fill
-            // targetcolor[3] === fillcolor.a // transparency
+        // Already filled?
+        if (colorCompareMaxRGB(cNew, cFill) == 0) {
             return false;
         }
-        
-        if (targetcolor[0] === data[i] && 
-            targetcolor[1] === data[i + 1] && 
-            targetcolor[2] === data[i + 2]) {
-            // Target matches surface 
-            // targetcolor[3] === data[i + 3] // transparency
+        else if (colorCompareMaxRGB(cNew, cOld) == 0) {
             return true;
         }
         
-        // RGB comparison
-        if (Math.abs(targetcolor[0] - data[i]) <= tolerance && 
-            Math.abs(targetcolor[1] - data[i + 1]) <= tolerance && 
-            Math.abs(targetcolor[2] - data[i + 2]) <= tolerance) {
-            // Target matches surface within tolerance 
-            // Math.abs(targetcolor[3] - data[i+3]) <= (255 - tolerance) // transparency
-            return true; 
+        // Compare colors
+        if (options.perceptive_colorspace) {
+            // LAB comparison
+            if (colorComparePerceptive(cNew, cOld) <= tolerance) {
+                return true; 
+            }          
+        }
+        else {
+            // RGB comparison
+            if (colorCompareMaxRGB(cNew, cOld) <= tolerance) {
+                return true; 
+            }            
         }
         
         // No match
@@ -599,6 +607,76 @@ var CBL = function (options) {
             return true;
         }
         return false;
+    };
+    
+    var dataToColor = function (data, i) {
+        return { 
+            r: data[i], 
+            g: data[i + 1], 
+            b: data[i + 2] 
+        };
+    };
+    
+    // Measure the difference between two colors in the RGB colorspace
+    var colorCompareMaxRGB = function (color1, color2) {
+        return Math.max(Math.abs(color1.r - color2.r), Math.abs(color1.g - color2.g), Math.abs(color1.g - color2.g));
+    };
+    
+    // Measure the difference between two colors in the RGB colorspace using Root Mean Square
+    var colorCompareMaxRGB = function (color1, color2) {
+        return Math.sqrt((Math.pow(color1.r - color2.r, 2), Math.pow(color1.g - color2.g, 2), Math.pow(color1.g - color2.g, 2))/3);
+    };
+    
+    // Measure the difference between two colors as measured by the human eye.
+    // The "just noticeable difference" (JND) is about 2.3.
+    var colorComparePerceptive = function (color1, color2) {
+        // Measure the difference between two colors in the LAB colorspace (a perceptive colorspace)
+        var eDelta = function (color1, color2) {
+            var a = toLAB(toXYZ(color1));
+            var b = toLAB(toXYZ(color2));
+            return Math.sqrt(Math.pow(a.l - b.l, 2) + Math.pow(a.a - b.a, 2) + Math.pow(a.b - b.b, 2));
+        };
+               
+        // Convert a color in the RGB colorspace to the XYZ colorspace
+        var toXYZ = function (c) {
+            var xR = c.r / 255.0;
+            var xG = c.g / 255.0;
+            var xB = c.b / 255.0;
+
+            xR = xR > 0.04045 ? Math.pow((xR + 0.055) / 1.055, 2.4) : (xR / 12.92);
+            xG = xG > 0.04045 ? Math.pow((xG + 0.055) / 1.055, 2.4) : (xG / 12.92);
+            xB = xB > 0.04045 ? Math.pow((xB + 0.055) / 1.055, 2.4) : (xB / 12.92);
+            
+            xR = xR * 100;
+            xG = xG * 100;
+            xB = xB * 100;
+
+            return {
+                x: xR * 0.4124 + xG * 0.3576 + xB * 0.1805,
+                y: xR * 0.2126 + xG * 0.7152 + xB * 0.0722,
+                z: xR * 0.0193 + xG * 0.1192 + xB * 0.9505
+            };
+        };
+
+        // Convert a color in the XYZ colorspace to the LAB colorspace
+        var toLAB = function (c) {
+            var xX = c.x / 95.047;
+            var xY = c.y / 100.000;
+            var xZ = c.z / 108.883;
+
+            xX = xX > 0.008856 ? Math.pow(xX, 1.0 / 3) : (7.787 * xX) + (16.0 / 116);
+            xY = xY > 0.008856 ? Math.pow(xY, 1.0 / 3) : (7.787 * xY) + (16.0 / 116);
+            xZ = xZ > 0.008856 ? Math.pow(xZ, 1.0 / 3) : (7.787 * xZ) + (16.0 / 116);
+            
+            return {
+                l: (116 * xY) - 16,
+                a: 500 * (xX - xY),
+                b: 200 * (xY - xZ)               
+            };
+        };
+        
+        // Perform the comparison
+        return eDelta(color1, color2);
     };
     
     var arrayContains = function (arr, obj) {
