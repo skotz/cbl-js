@@ -16,6 +16,7 @@ var CBL = function (options) {
         blob_max_pixels: 99999,
         pattern_width: 20,
         pattern_height: 20,
+        pattern_maintain_ratio: false,
         blob_debug: "",
         allow_console_log: false,
         allow_console_warn: true,
@@ -359,8 +360,24 @@ var CBL = function (options) {
                     blob.width = segmentWidth;
                     blob.height = segmentHeight;
                     blob.getContext('2d').putImageData(blobContext, -leftmost, -topmost, leftmost, topmost, segmentWidth, segmentHeight);
-                    blob.getContext('2d').drawImage(blob, 0, 0, segmentWidth * segmentWidth / (rightmost - leftmost + 1), segmentHeight * segmentHeight / (bottommost - topmost + 1));
-                                        
+                    
+                    if (options.pattern_maintain_ratio) {
+                        var dWidth = rightmost - leftmost;
+                        var dHeight = bottommost - topmost;
+                        if (dWidth / segmentWidth > dHeight / segmentHeight) {
+                            // Scale width
+                            blob.getContext('2d').drawImage(blob, 0, 0, segmentWidth * segmentWidth / (rightmost - leftmost + 1), segmentHeight * segmentHeight / (rightmost - leftmost + 1));
+                        }
+                        else {
+                            // Scale height
+                            blob.getContext('2d').drawImage(blob, 0, 0, segmentWidth * segmentWidth / (bottommost - topmost + 1), segmentHeight * segmentHeight / (bottommost - topmost + 1));
+                        }
+                    }
+                    else {
+                        // Stretch the image
+                        blob.getContext('2d').drawImage(blob, 0, 0, segmentWidth * segmentWidth / (rightmost - leftmost + 1), segmentHeight * segmentHeight / (bottommost - topmost + 1));
+                    }
+                    
                     blobs.push(blob);
                         
                     if (typeof debugElement !== 'undefined' && debugElement.length) {
