@@ -111,6 +111,10 @@ var CBL = function (options) {
             else {
                 image.onload = afterLoad();
                 
+                if (document.getElementById(el) == null) {
+                    image.src = el;
+                }
+                
                 // // Stuff breaks if we continue without having finished loading the image...
                 // var start = new Date().getTime();
                 // while (locked && new Date().getTime() - start < 5000);
