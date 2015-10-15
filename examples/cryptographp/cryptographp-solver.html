@@ -11,7 +11,7 @@
         <img id="testImage" src="2dg9.gif" />
         <div id="debugPreprocessed"></div>
         <div id="debugSegmented"></div>
-        <a id="aSolve" href="javascript: void(0);" onclick="document.getElementById('solution').innerHTML = cbl.solve('testImage')">Solve</a>
+        <a id="aSolve" href="javascript: void(0);" onclick="solve()">Solve</a>
         <div id="solution"></div>
     </div>
     <div class="foot">
@@ -19,10 +19,10 @@
     </div>
     <script>
         var cbl = new CBL({
-            preprocess: function() {
-                cbl.binarize(220);
-                cbl.colorRegions(50);
-                cbl.debugImage("debugPreprocessed");
+            preprocess: function(img) {
+                img.binarize(220);
+                img.colorRegions(50);
+                img.debugImage("debugPreprocessed");
             },
             model_file: "cryptographp-model.txt",
             blob_min_pixels: 50,
@@ -34,6 +34,13 @@
                 document.getElementById("aSolve").style.display = "inline-block";
             }
         });
+        
+        var solve = function() {
+            cbl.solve("testImage")
+            .done(function (solution) {
+                document.getElementById('solution').innerHTML = solution;
+            });
+        };
     </script>
 </body>
 </html>

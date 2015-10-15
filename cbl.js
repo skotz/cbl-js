@@ -546,6 +546,8 @@ var CBL = function (options) {
         if (processQueue.length) {
             processBusy = true;
             processQueue.shift()();
+        } else {
+            processBusy = false;
         }
     };
     
