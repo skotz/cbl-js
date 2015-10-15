@@ -17,6 +17,7 @@ var CBL = function (options) {
         pattern_width: 20,
         pattern_height: 20,
         pattern_maintain_ratio: false,
+        incorrect_segment_char: "\\",
         blob_debug: "",
         blob_console_debug: false,
         allow_console_log: false,
@@ -138,12 +139,16 @@ var CBL = function (options) {
                 document.getElementById(nextPattern.txtId).focus();
                 document.getElementById(nextPattern.txtId).onkeyup = function(event) {
                     var typedLetter = document.getElementById(nextPattern.txtId).value;
-                    if (options.character_set.indexOf(typedLetter) > -1 && typedLetter.length) {
-                        model.push({
-                            pattern: nextPattern.pattern,
-                            solution: document.getElementById(nextPattern.txtId).value
-                        });
-                        log("Added \"" + document.getElementById(nextPattern.txtId).value + "\" pattern to model!");
+                    if ((options.character_set.indexOf(typedLetter) > -1 && typedLetter.length) || typedLetter == options.incorrect_segment_char) {
+                        if (typedLetter != options.incorrect_segment_char) {                            
+                            model.push({
+                                pattern: nextPattern.pattern,
+                                solution: document.getElementById(nextPattern.txtId).value
+                            });
+                            log("Added \"" + document.getElementById(nextPattern.txtId).value + "\" pattern to model!");
+                        } else {
+                            log("Did not add bad segment to model.");
+                        }
                         document.getElementById(nextPattern.txtId).value = "";
                         
                         // Load the next pattern
@@ -271,15 +276,17 @@ var CBL = function (options) {
             \***********************************************/
             
             // Fills each distinct region in the image with a different random color
-            colorRegions: function (tolerance) {
+            colorRegions: function (tolerance, ignoreWhite) {
+                if (typeof ignoreWhite === 'undefined') {
+                    ignoreWhite = false;
+                }
                 var exclusions = new Array();
                 var image = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
                 for (var x = 0; x < image.width; x++) {
                     for (var y = 0; y < image.height; y++) {
                         var i = x * 4 + y * 4 * image.width;
-                        // If the pixel is grayscale (not already colored)
                         if (!arrayContains(exclusions, i)) {
-                            obj.floodfill(x, y, getRandomColor(), tolerance, image, exclusions);
+                            obj.floodfill(x, y, getRandomColor(), tolerance, image, exclusions, ignoreWhite);
                         }
                     }
                 }
@@ -302,7 +309,7 @@ var CBL = function (options) {
             },
             
             // Flood fill a given color into a region starting at a certain point
-            floodfill: function (x, y, fillcolor, tolerance, image, exclusions) {
+            floodfill: function (x, y, fillcolor, tolerance, image, exclusions, ignoreWhite) {
                 var internalImage = false;
                 if (typeof image === 'undefined') {
                     internalImage = true;
@@ -327,14 +334,14 @@ var CBL = function (options) {
                             continue;
                         }
                     }
-                    if (pixelCompareAndSet(i, targetcolor, targettotal, fillcolor, data, length, tolerance, exclusions)) {
+                    if (pixelCompareAndSet(i, targetcolor, targettotal, fillcolor, data, length, tolerance, exclusions, ignoreWhite)) {
                         e = i;
                         w = i;
                         mw = (i / w2) * w2; 
                         me = mw + w2;
                                             
-                        while (mw < (w -= 4) && pixelCompareAndSet(w, targetcolor, targettotal, fillcolor, data, length, tolerance, exclusions));
-                        while (me > (e += 4) && pixelCompareAndSet(e, targetcolor, targettotal, fillcolor, data, length, tolerance, exclusions));
+                        while (mw < (w -= 4) && pixelCompareAndSet(w, targetcolor, targettotal, fillcolor, data, length, tolerance, exclusions, ignoreWhite));
+                        while (me > (e += 4) && pixelCompareAndSet(e, targetcolor, targettotal, fillcolor, data, length, tolerance, exclusions, ignoreWhite));
                         
                         for (var j = w; j < e; j += 4) {
                             if (j - w2 >= 0 && pixelCompare(j - w2, targetcolor, targettotal, fillcolor, data, length, tolerance)) {
@@ -352,12 +359,16 @@ var CBL = function (options) {
             },
             
             // Blur the image
-            blur : function () {
+            blur : function (iterations) {
                 var amount = 1;
                 var ctx = canvas.getContext('2d');
                 ctx.globalAlpha = 0.3;
+                
+                if (typeof iterations === 'undefined') {
+                    iterations = 8;
+                }
 
-                for (var i = 1; i <= 8; i++) {
+                for (var i = 1; i <= iterations; i++) {
                     ctx.drawImage(canvas, amount, 0, canvas.width - amount, canvas.height, 0, 0, canvas.width - amount, canvas.height);
                     ctx.drawImage(canvas, 0, amount, canvas.width, canvas.height - amount, 0, 0, canvas.width, canvas.height - amount);
                 }
@@ -374,6 +385,27 @@ var CBL = function (options) {
                         image.data[i + 1] = brightness;
                         image.data[i + 2] = brightness;
                         image.data[i + 3] = 255;
+                    }
+                }
+                canvas.getContext('2d').putImageData(image, 0, 0);
+                return this;
+            },
+            
+            // Change all semi-gray colors to white       
+            removeGray : function (tolerance) { 
+                var image = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);        
+                for (var x = 0; x < image.width; x++) {
+                    for (var y = 0; y < image.height; y++) {
+                        var i = x * 4 + y * 4 * image.width;
+                        var diff = Math.max(Math.abs(image.data[i] - image.data[i + 1]), 
+                            Math.abs(image.data[i + 1] - image.data[i + 2]),
+                            Math.abs(image.data[i + 2] - image.data[i]));
+                        if (diff < tolerance) {
+                            image.data[i] = 255;
+                            image.data[i + 1] = 255;
+                            image.data[i + 2] = 255;
+                            image.data[i + 3] = 255;                            
+                        }
                     }
                 }
                 canvas.getContext('2d').putImageData(image, 0, 0);
@@ -628,7 +660,7 @@ var CBL = function (options) {
     };
 
     // Compare two pixels and set the value if within set rules
-    var pixelCompareAndSet = function (i, targetcolor, targettotal, fillcolor, data, length, tolerance, exclusions) {
+    var pixelCompareAndSet = function (i, targetcolor, targettotal, fillcolor, data, length, tolerance, exclusions, ignoreWhite) {
         if (pixelCompare(i, targetcolor, targettotal, fillcolor, data, length, tolerance)) {
             if (typeof exclusions !== 'undefined') {
                 if (arrayContains(exclusions, i)) {
@@ -636,10 +668,12 @@ var CBL = function (options) {
                 }
             }
             
-            data[i] = fillcolor.r;
-            data[i + 1] = fillcolor.g;
-            data[i + 2] = fillcolor.b;
-            data[i + 3] = fillcolor.a;
+            if (!(ignoreWhite && data[i] == 255 && data[i + 1] == 255 && data[i + 2] == 255)) {
+                data[i] = fillcolor.r;
+                data[i + 1] = fillcolor.g;
+                data[i + 2] = fillcolor.b;
+                data[i + 3] = fillcolor.a;
+            }
             
             if (typeof exclusions !== 'undefined') {
                 exclusions.push(i);

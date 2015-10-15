@@ -5,7 +5,13 @@ Test out a [working example](http://skotz.github.io/cbl-js) if you'd like.
 
 ![Preprocessing Example](https://raw.githubusercontent.com/skotz/cbl-js/master/examples/codeproject/preprocess_steps.png)
 
+![Preprocessing Example](https://raw.githubusercontent.com/skotz/cbl-js/master/examples/codeproject/segmentation_step.png)
+
 ```javascript
-cbl.blur();
-cbl.colorRegions(30);
+preprocess: function(img) {
+    img.removeGray(20);
+    img.blur(2);
+    img.binarize(190);
+    img.colorRegions(40, true);
+}
 ```

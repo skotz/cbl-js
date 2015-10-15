@@ -1,0 +1,55 @@
+<!doctype html>
+<html>
+<head>
+    <title>CBL-js Example :: CodeProject CAPTCHA Solver</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="codeproject.css" />
+    <script type="text/javascript" src="../../cbl.min.js"></script>
+</head>
+<body>
+    <div class="main">
+        <img id="testImage" src="15513103.gif" />
+        <div id="debugPreprocessed"></div>
+        <div id="debugSegmented"></div>
+        <a id="aSolve" href="javascript: void(0);" onclick="solve()">Solve</a>
+        <div id="solution"></div>
+    </div>
+    <div class="foot">
+        <a href="https://github.com/skotz/cbl-js">CBL-js</a> &bull; Scott Clayton
+    </div>
+    <script>
+        var cbl = new CBL({
+            preprocess: function(img) {
+                img.removeGray(20);
+                img.debugImage("debugPreprocessed");
+                img.blur(2);
+                img.debugImage("debugPreprocessed");
+                img.binarize(190);
+                img.debugImage("debugPreprocessed");
+                img.colorRegions(40, true);
+                img.debugImage("debugPreprocessed");
+            },
+            character_set: "0123456789",
+            model_file: "codeproject-model.txt",
+            blob_min_pixels: 40,
+            blob_max_pixels: 350,
+            pattern_width: 24,
+            pattern_height: 24,
+            pattern_maintain_ratio: true,
+            allow_console_log: true,
+            perceptive_colorspace: true,
+            blob_debug: "debugSegmented",
+            model_loaded: function() {
+                document.getElementById("aSolve").style.display = "inline-block";
+            }
+        });
+        
+        var solve = function() {
+            cbl.solve("testImage")
+            .done(function (solution) {
+                document.getElementById('solution').innerHTML = solution;
+            });
+        };
+    </script>
+</body>
+</html>
