@@ -18,6 +18,7 @@ var CBL = function (options) {
         pattern_height: 20,
         pattern_maintain_ratio: false,
         blob_debug: "",
+        blob_console_debug: false,
         allow_console_log: false,
         allow_console_warn: true,
         perceptive_colorspace: false,
@@ -42,33 +43,41 @@ var CBL = function (options) {
             return obj.train(el);
         },
         
+        done : function (resultHandler) {
+            addQueue(function () {
+                resultHandler(doneResult);
+                runQueue();
+            });
+        },
+        
         // Load an image and attempt to solve it based on trained model
         train : function (el, patternElementID, humanSolutionElementID, onComplete) {
-            var solution = "";
-            var image;
-            if (document.getElementById(el) != null) {
-                image = document.getElementById(el);
-            } else {
-                image = document.createElement("img");
-                image.src = el;
-            }
-            var afterLoad = function() {
-                if (!locked) {
-                    locked = true;
-                    canvas = document.createElement('canvas');
+            addQueue(function() {
+                var image;
+                var needSetSrc = false;
+                if (document.getElementById(el) != null) {
+                    image = document.getElementById(el);
+                } else {
+                    image = document.createElement("img");
+                    needSetSrc = true;
+                }
+                var afterLoad = function() {
+                    var solution = "";
+                    var canvas = document.createElement('canvas');
                     canvas.width = image.width;
                     canvas.height = image.height;
                     canvas.getContext('2d').drawImage(image, 0, 0);  
                     
                     // Run user-specified image preprocessing
-                    options.preprocess();
+                    var cblImage = new cbl_image(canvas);
+                    options.preprocess(cblImage);
                     
                     // Run segmentation
-                    var blobs = obj.segmentBlobs(options.blob_min_pixels, 
-                                                 options.blob_max_pixels, 
-                                                 options.pattern_width, 
-                                                 options.pattern_height, 
-                                                 options.blob_debug);
+                    var blobs = cblImage.segmentBlobs(options.blob_min_pixels, 
+                                                      options.blob_max_pixels, 
+                                                      options.pattern_width, 
+                                                      options.pattern_height, 
+                                                      options.blob_debug);
                     
                     // FOR TRAINING
                     // Set up a list of patterns for a human to classify
@@ -101,25 +110,23 @@ var CBL = function (options) {
                         }
                         log("Solution = " + solution);
                     }
-                        
-                    obj.reset();
+
+                    doneResult = solution;
+                    runQueue();
+                };
+                if (image.complete && !needSetSrc) {
+                    afterLoad();
                 }
-            };
-            if (image.complete) {
-                afterLoad();
-            }
-            else {
-                image.onload = afterLoad();
-                
-                if (document.getElementById(el) == null) {
-                    image.src = el;
-                }
-                
-                // // Stuff breaks if we continue without having finished loading the image...
-                // var start = new Date().getTime();
-                // while (locked && new Date().getTime() - start < 5000);
-            }
-            return solution;
+                else {
+                    image.onload = afterLoad;
+                    
+                    // Set the source AFTER setting the onload
+                    if (needSetSrc) {
+                        image.src = el;
+                    }
+                }              
+            });
+            return this;
         },
         
         // Load the next pattern pending human classification
@@ -254,269 +261,264 @@ var CBL = function (options) {
             model = newModel;
             log("Condensed model from " + oldCount + " patterns to " + model.length + " patterns!");
             return this;
-        },
-        
-        // Unload an image
-        reset: function (el, callback) {
-            locked = false;
-            canvas = null;
-            return this;
-        },
-        
-        // Display an image in an image tag
-        display: function (el) {         
-            document.getElementById(el).src = canvas.toDataURL();      
-            return this;
-        },
-        
-        // Displays the canvas as an image in another element
-        debugImage: function (debugElement) {
-            var test = document.createElement("img");
-            test.src = canvas.toDataURL();
-            // test.border = 1;
-            document.getElementById(debugElement).appendChild(test);
-            return this;
-        },
-        
-        /***********************************************\
-        | Image Segmentation Methods                    |
-        \***********************************************/
-        
-        // Cut the image into separate blobs where each distinct color is a blob
-        segmentBlobs : function (minPixels, maxPixels, segmentWidth, segmentHeight, debugElement) {
-            if (typeof minPixels === 'undefined') {
-                minPixels = 1;
-            }
-            if (typeof maxPixels === 'undefined') {
-                maxPixels = 100000;
-            }
-            if (typeof segmentWidth === 'undefined') {
-                segmentWidth = 20;
-            }
-            if (typeof segmentHeight === 'undefined') {
-                segmentHeight = 20;
-            }
+        }
+    };
+    
+    var cbl_image = function (canvas) {
+        var obj = {
+            /***********************************************\
+            | Image Manipulation Methods                    |
+            \***********************************************/
             
-            var image = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);    
-            var toColor = function (d, i) { return d[i] * 255 * 255 + d[i + 1] * 256 + d[i + 2]; };
-            
-            // Find distinct colors
-            var colors = new Array();
-            for (var x = 0; x < image.width; x++) {
-                for (var y = 0; y < image.height; y++) {
-                    var i = x * 4 + y * 4 * image.width;
-                    var rgb = toColor(image.data, i);
-                    if (!arrayContains(colors, rgb)) {
-                        colors.push(rgb);
+            // Fills each distinct region in the image with a different random color
+            colorRegions: function (tolerance) {
+                var exclusions = new Array();
+                var image = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
+                for (var x = 0; x < image.width; x++) {
+                    for (var y = 0; y < image.height; y++) {
+                        var i = x * 4 + y * 4 * image.width;
+                        // If the pixel is grayscale (not already colored)
+                        if (!arrayContains(exclusions, i)) {
+                            obj.floodfill(x, y, getRandomColor(), tolerance, image, exclusions);
+                        }
                     }
                 }
-            }
+                canvas.getContext('2d').putImageData(image, 0, 0);  
+                return this;
+            },
+        
+            // Display an image in an image tag
+            display: function (el) {         
+                document.getElementById(el).src = canvas.toDataURL();      
+                return this;
+            },
             
-            // Create blobs   
-            var blobs = new Array();
-            for (var c = 0; c < colors.length; c++) {
-                var blob = document.createElement('canvas');
-                blob.width = image.width;
-                blob.height = image.height;
-                var blobContext = blob.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
-                var blobData = blobContext.data;
-                var pixels = 0;
-                var leftmost = image.width;
-                var rightmost = 0;
-                var topmost = image.height;
-                var bottommost = 0;
+            // Displays the canvas as an image in another element
+            debugImage: function (debugElement) {
+                var test = document.createElement("img");
+                test.src = canvas.toDataURL();
+                document.getElementById(debugElement).appendChild(test);
+                return this;
+            },
+            
+            // Flood fill a given color into a region starting at a certain point
+            floodfill: function (x, y, fillcolor, tolerance, image, exclusions) {
+                var internalImage = false;
+                if (typeof image === 'undefined') {
+                    internalImage = true;
+                    image = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
+                }
+                var data = image.data;
+                var length = data.length;
+                var Q = [];
+                var i = (x + y * image.width) * 4;
+                var e = i, w = i, me, mw, w2 = image.width * 4;
+                var targetcolor = [data[i], data[i + 1], data[i + 2], data[i + 3]];
+                var targettotal = data[i] + data[i + 1] + data[i + 2] + data[i + 3];
+
+                if (!pixelCompare(i, targetcolor, targettotal, fillcolor, data, length, tolerance)) { 
+                    return false; 
+                }
+                Q.push(i);
+                while (Q.length) {
+                    i = Q.pop();
+                    if (typeof exclusions !== 'undefined') {
+                        if (arrayContains(exclusions, i)) {
+                            continue;
+                        }
+                    }
+                    if (pixelCompareAndSet(i, targetcolor, targettotal, fillcolor, data, length, tolerance, exclusions)) {
+                        e = i;
+                        w = i;
+                        mw = (i / w2) * w2; 
+                        me = mw + w2;
+                                            
+                        while (mw < (w -= 4) && pixelCompareAndSet(w, targetcolor, targettotal, fillcolor, data, length, tolerance, exclusions));
+                        while (me > (e += 4) && pixelCompareAndSet(e, targetcolor, targettotal, fillcolor, data, length, tolerance, exclusions));
+                        
+                        for (var j = w; j < e; j += 4) {
+                            if (j - w2 >= 0 && pixelCompare(j - w2, targetcolor, targettotal, fillcolor, data, length, tolerance)) {
+                                Q.push(j - w2);
+                            }
+                            if (j + w2 < length && pixelCompare(j + w2, targetcolor, targettotal, fillcolor, data, length, tolerance)) {
+                                Q.push(j + w2);
+                            }
+                        } 			
+                    }
+                }
+                if (internalImage) {
+                    canvas.getContext('2d').putImageData(image, 0, 0);  
+                }
+            },
+            
+            // Blur the image
+            blur : function () {
+                var amount = 1;
+                var ctx = canvas.getContext('2d');
+                ctx.globalAlpha = 0.3;
+
+                for (var i = 1; i <= 8; i++) {
+                    ctx.drawImage(canvas, amount, 0, canvas.width - amount, canvas.height, 0, 0, canvas.width - amount, canvas.height);
+                    ctx.drawImage(canvas, 0, amount, canvas.width, canvas.height - amount, 0, 0, canvas.width, canvas.height - amount);
+                }
+            },
+            
+            // Convert the image to grayscale        
+            grayscale : function () { 
+                var image = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);        
+                for (var x = 0; x < image.width; x++) {
+                    for (var y = 0; y < image.height; y++) {
+                        var i = x * 4 + y * 4 * image.width;
+                        var brightness = 0.34 * image.data[i] + 0.5 * image.data[i + 1] + 0.16 * image.data[i + 2];
+                        image.data[i] = brightness;
+                        image.data[i + 1] = brightness;
+                        image.data[i + 2] = brightness;
+                        image.data[i + 3] = 255;
+                    }
+                }
+                canvas.getContext('2d').putImageData(image, 0, 0);
+                return this;
+            },
+            
+            // Convert the image to black and white given a grayshale threshold        
+            binarize : function (threshold) {
+                var image = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
+                for (var x = 0; x < image.width; x++) {
+                    for (var y = 0; y < image.height; y++) {
+                        var i = x * 4 + y * 4 * image.width;
+                        var brightness = 0.34 * image.data[i] + 0.5 * image.data[i + 1] + 0.16 * image.data[i + 2];
+                        image.data[i] = brightness >= threshold ? 255 : 0;
+                        image.data[i + 1] = brightness >= threshold ? 255 : 0;
+                        image.data[i + 2] = brightness >= threshold ? 255 : 0;
+                        image.data[i + 3] = 255;
+                    }
+                }
+                canvas.getContext('2d').putImageData(image, 0, 0);
+                return this;
+            },
                 
+            /***********************************************\
+            | Image Segmentation Methods                    |
+            \***********************************************/
+            
+            // Cut the image into separate blobs where each distinct color is a blob
+            segmentBlobs : function (minPixels, maxPixels, segmentWidth, segmentHeight, debugElement) {
+                if (typeof minPixels === 'undefined') {
+                    minPixels = 1;
+                }
+                if (typeof maxPixels === 'undefined') {
+                    maxPixels = 100000;
+                }
+                if (typeof segmentWidth === 'undefined') {
+                    segmentWidth = 20;
+                }
+                if (typeof segmentHeight === 'undefined') {
+                    segmentHeight = 20;
+                }
+                
+                var image = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);    
+                var toColor = function (d, i) { return d[i] * 255 * 255 + d[i + 1] * 256 + d[i + 2]; };
+                
+                // Find distinct colors
+                var colors = new Array();
                 for (var x = 0; x < image.width; x++) {
                     for (var y = 0; y < image.height; y++) {
                         var i = x * 4 + y * 4 * image.width;
                         var rgb = toColor(image.data, i);
-                        if (rgb == colors[c]) {
-                            blobData[i] = 0;
-                            blobData[i + 1] = 0;
-                            blobData[i + 2] = 0;
-                            blobData[i + 3] = 255;
-                            
-                            pixels++;
-                            
-                            if (x < leftmost) {
-                                leftmost = x;
-                            }
-                            if (x > rightmost) {
-                                rightmost = x;
-                            }
-                            if (y < topmost) {
-                                topmost = y;
-                            }
-                            if (y > bottommost) {
-                                bottommost = y;
-                            }
-                        } else {
-                            blobData[i] = 255;
-                            blobData[i + 1] = 255;
-                            blobData[i + 2] = 255;
-                            blobData[i + 3] = 255;
+                        if (!arrayContains(colors, rgb)) {
+                            colors.push(rgb);
                         }
                     }
                 }
                 
-                // Only save blobs of a certain size
-                if (pixels >= minPixels && pixels <= maxPixels) {
-                    blob.width = segmentWidth;
-                    blob.height = segmentHeight;
-                    blob.getContext('2d').putImageData(blobContext, -leftmost, -topmost, leftmost, topmost, segmentWidth, segmentHeight);
-                    if (options.pattern_maintain_ratio) {
-                        var dWidth = rightmost - leftmost;
-                        var dHeight = bottommost - topmost;
-                        if (dWidth / segmentWidth > dHeight / segmentHeight) {
-                            // Scale width
-                            blob.getContext('2d').drawImage(blob, 0, 0, segmentWidth * segmentWidth / (rightmost - leftmost + 1), segmentHeight * segmentHeight / (rightmost - leftmost + 1));
+                // Create blobs   
+                var blobs = new Array();
+                for (var c = 0; c < colors.length; c++) {
+                    var blob = document.createElement('canvas');
+                    blob.width = image.width;
+                    blob.height = image.height;
+                    var blobContext = blob.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
+                    var blobData = blobContext.data;
+                    var pixels = 0;
+                    var leftmost = image.width;
+                    var rightmost = 0;
+                    var topmost = image.height;
+                    var bottommost = 0;
+                    
+                    for (var x = 0; x < image.width; x++) {
+                        for (var y = 0; y < image.height; y++) {
+                            var i = x * 4 + y * 4 * image.width;
+                            var rgb = toColor(image.data, i);
+                            if (rgb == colors[c]) {
+                                blobData[i] = 0;
+                                blobData[i + 1] = 0;
+                                blobData[i + 2] = 0;
+                                blobData[i + 3] = 255;
+                                
+                                pixels++;
+                                
+                                if (x < leftmost) {
+                                    leftmost = x;
+                                }
+                                if (x > rightmost) {
+                                    rightmost = x;
+                                }
+                                if (y < topmost) {
+                                    topmost = y;
+                                }
+                                if (y > bottommost) {
+                                    bottommost = y;
+                                }
+                            } else {
+                                blobData[i] = 255;
+                                blobData[i + 1] = 255;
+                                blobData[i + 2] = 255;
+                                blobData[i + 3] = 255;
+                            }
+                        }
+                    }
+                    
+                    // Only save blobs of a certain size
+                    if (pixels >= minPixels && pixels <= maxPixels) {
+                        blob.width = segmentWidth;
+                        blob.height = segmentHeight;
+                        blob.getContext('2d').putImageData(blobContext, -leftmost, -topmost, leftmost, topmost, segmentWidth, segmentHeight);
+                        if (options.pattern_maintain_ratio) {
+                            var dWidth = rightmost - leftmost;
+                            var dHeight = bottommost - topmost;
+                            if (dWidth / segmentWidth > dHeight / segmentHeight) {
+                                // Scale width
+                                blob.getContext('2d').drawImage(blob, 0, 0, segmentWidth * segmentWidth / (rightmost - leftmost + 1), segmentHeight * segmentHeight / (rightmost - leftmost + 1));
+                            }
+                            else {
+                                // Scale height
+                                blob.getContext('2d').drawImage(blob, 0, 0, segmentWidth * segmentWidth / (bottommost - topmost + 1), segmentHeight * segmentHeight / (bottommost - topmost + 1));
+                            }
                         }
                         else {
-                            // Scale height
-                            blob.getContext('2d').drawImage(blob, 0, 0, segmentWidth * segmentWidth / (bottommost - topmost + 1), segmentHeight * segmentHeight / (bottommost - topmost + 1));
+                            // Stretch the image
+                            blob.getContext('2d').drawImage(blob, 0, 0, segmentWidth * segmentWidth / (rightmost - leftmost + 1), segmentHeight * segmentHeight / (bottommost - topmost + 1));
                         }
-                    }
-                    else {
-                        // Stretch the image
-                        blob.getContext('2d').drawImage(blob, 0, 0, segmentWidth * segmentWidth / (rightmost - leftmost + 1), segmentHeight * segmentHeight / (bottommost - topmost + 1));
-                    }
-                    
-                    blobs.push(blob);
                         
-                    if (typeof debugElement !== 'undefined' && debugElement.length) {
-                        log("Blob size = " + pixels);
-                        var test = document.createElement("img");
-                        test.src = blob.toDataURL();
-                        // test.border = 1;
-                        document.getElementById(debugElement).appendChild(test);
-                    }
-                }
-            }
-            
-            return blobs;
-        },
-        
-        /***********************************************\
-        | Image Manipulation Methods                    |
-        \***********************************************/
-        
-        // Fills each distinct region in the image with a different random color
-        colorRegions: function (tolerance) {
-            var exclusions = new Array();
-            var image = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
-            for (var x = 0; x < image.width; x++) {
-                for (var y = 0; y < image.height; y++) {
-                    var i = x * 4 + y * 4 * image.width;
-                    // If the pixel is grayscale (not already colored)
-                    if (!arrayContains(exclusions, i)) {
-                        obj.floodfill(x, y, getRandomColor(), tolerance, image, exclusions);
-                    }
-                }
-            }
-            canvas.getContext('2d').putImageData(image, 0, 0);  
-            return this;
-        },
-        
-        // Creates a color object from red, green, and blue values
-        color: function (r, g, b) {
-            return {r: r, g: g, b: b, a: 255};
-        },
-        
-        // Flood fill a given color into a region starting at a certain point
-        floodfill: function (x, y, fillcolor, tolerance, image, exclusions) {
-            var internalImage = false;
-            if (typeof image === 'undefined') {
-                internalImage = true;
-                image = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
-            }
-            var data = image.data;
-            var length = data.length;
-            var Q = [];
-            var i = (x + y * image.width) * 4;
-            var e = i, w = i, me, mw, w2 = image.width * 4;
-            var targetcolor = [data[i], data[i + 1], data[i + 2], data[i + 3]];
-            var targettotal = data[i] + data[i + 1] + data[i + 2] + data[i + 3];
-
-            if (!pixelCompare(i, targetcolor, targettotal, fillcolor, data, length, tolerance)) { 
-                return false; 
-            }
-            Q.push(i);
-            while (Q.length) {
-                i = Q.pop();
-                if (typeof exclusions !== 'undefined') {
-                    if (arrayContains(exclusions, i)) {
-                        continue;
-                    }
-                }
-                if (pixelCompareAndSet(i, targetcolor, targettotal, fillcolor, data, length, tolerance, exclusions)) {
-                    e = i;
-                    w = i;
-                    mw = (i / w2) * w2; 
-                    me = mw + w2;
-                                        
-                    while (mw < (w -= 4) && pixelCompareAndSet(w, targetcolor, targettotal, fillcolor, data, length, tolerance, exclusions));
-                    while (me > (e += 4) && pixelCompareAndSet(e, targetcolor, targettotal, fillcolor, data, length, tolerance, exclusions));
-                    
-                    for (var j = w; j < e; j += 4) {
-                        if (j - w2 >= 0 && pixelCompare(j - w2, targetcolor, targettotal, fillcolor, data, length, tolerance)) {
-                            Q.push(j - w2);
+                        blobs.push(blob);
+                            
+                        // Debugging help
+                        if (typeof debugElement !== 'undefined' && debugElement.length) {
+                            if (options.blob_console_debug) {
+                                log("Blob size = " + pixels);
+                            }
+                            var test = document.createElement("img");
+                            test.src = blob.toDataURL();
+                            // test.border = 1;
+                            document.getElementById(debugElement).appendChild(test);
                         }
-                        if (j + w2 < length && pixelCompare(j + w2, targetcolor, targettotal, fillcolor, data, length, tolerance)) {
-                            Q.push(j + w2);
-                        }
-                    } 			
+                    }
                 }
+                
+                return blobs;
             }
-            if (internalImage) {
-                canvas.getContext('2d').putImageData(image, 0, 0);  
-            }
-        },
-        
-        // Blur the image
-        blur : function () {
-            var amount = 1;
-            var ctx = canvas.getContext('2d');
-            ctx.globalAlpha = 0.3;
-
-            for (var i = 1; i <= 8; i++) {
-                ctx.drawImage(canvas, amount, 0, canvas.width - amount, canvas.height, 0, 0, canvas.width - amount, canvas.height);
-                ctx.drawImage(canvas, 0, amount, canvas.width, canvas.height - amount, 0, 0, canvas.width, canvas.height - amount);
-            }
-        },
-        
-        // Convert the image to grayscale        
-        grayscale : function () { 
-            var image = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);        
-            for (var x = 0; x < image.width; x++) {
-                for (var y = 0; y < image.height; y++) {
-                    var i = x * 4 + y * 4 * image.width;
-                    var brightness = 0.34 * image.data[i] + 0.5 * image.data[i + 1] + 0.16 * image.data[i + 2];
-                    image.data[i] = brightness;
-                    image.data[i + 1] = brightness;
-                    image.data[i + 2] = brightness;
-                    image.data[i + 3] = 255;
-                }
-            }
-            canvas.getContext('2d').putImageData(image, 0, 0);
-            return this;
-        },
-        
-        // Convert the image to black and white given a grayshale threshold        
-        binarize : function (threshold) {
-            var image = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
-            for (var x = 0; x < image.width; x++) {
-                for (var y = 0; y < image.height; y++) {
-                    var i = x * 4 + y * 4 * image.width;
-                    var brightness = 0.34 * image.data[i] + 0.5 * image.data[i + 1] + 0.16 * image.data[i + 2];
-                    image.data[i] = brightness >= threshold ? 255 : 0;
-                    image.data[i + 1] = brightness >= threshold ? 255 : 0;
-                    image.data[i + 2] = brightness >= threshold ? 255 : 0;
-                    image.data[i + 3] = 255;
-                }
-            }
-            canvas.getContext('2d').putImageData(image, 0, 0);
-            return this;
-        }
+        };
+        return obj;
     };
     
     /***********************************************\
@@ -527,8 +529,25 @@ var CBL = function (options) {
     var pendingPatterns = new Array();
     var currentlyTraining = false;
     
-    var locked = false;
-    var canvas;
+    var processQueue = new Array();
+    var processBusy = false;
+    var doneResult = "";
+    
+    // Add a method to the process queue and run the first item if nothing's already running
+    var addQueue = function (action) {
+        processQueue.push(action);
+        if (!processBusy) {
+            runQueue();            
+        }
+    };
+    
+    // Run the next process in the queue if one is not already running
+    var runQueue = function () {
+        if (processQueue.length) {
+            processBusy = true;
+            processQueue.shift()();
+        }
+    };
     
     // Find the best match for a pattern in the current model
     var findBestMatch = function (pattern) {
@@ -707,13 +726,17 @@ var CBL = function (options) {
         return false;
     };
     
+    var toColor = function (r, g, b) {
+        return {r: r, g: g, b: b, a: 255};
+    };
+    
     var getRandomColor = function () {
         var r = Math.round(Math.random() * 200) + 55;
         var g;
         var b;
         while ((g = Math.round(Math.random() * 200) + 55) == r);
         while ((b = Math.round(Math.random() * 200) + 55) == r || b == g);
-        return obj.color(r, g, b);
+        return toColor(r, g, b);
     };
     
     var log = function (message) {
