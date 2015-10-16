@@ -12,6 +12,7 @@ var CBL = function (options) {
         model_file: "",
         model_string: "",
         model_loaded: function() { },
+        training_complete: function() { },
         blob_min_pixels: 1,
         blob_max_pixels: 99999,
         pattern_width: 20,
@@ -41,7 +42,7 @@ var CBL = function (options) {
         
         // Load an image and attempt to solve it based on trained model
         solve : function (el) {
-            return obj.train(el);
+            return obj.train(el, true);
         },
         
         done : function (resultHandler) {
@@ -52,7 +53,10 @@ var CBL = function (options) {
         },
         
         // Load an image and attempt to solve it based on trained model
-        train : function (el, patternElementID, humanSolutionElementID, onComplete) {
+        train : function (el, solving) {
+            if (typeof solving === 'undefined') {
+                solving = false;
+            }
             addQueue(function() {
                 var image;
                 var needSetSrc = false;
@@ -82,7 +86,7 @@ var CBL = function (options) {
                     
                     // FOR TRAINING
                     // Set up a list of patterns for a human to classify
-                    if (typeof patternElementID !== 'undefined' && typeof humanSolutionElementID !== 'undefined' && blobs.length) {
+                    if (!solving) {
                         for (var i = 0; i < blobs.length; i++) {
                             var imgUrl = blobs[i].toDataURL();
                             var blobPattern = blobToPattern(blobs[i]);
@@ -92,7 +96,7 @@ var CBL = function (options) {
                                 imgId: patternElementID,
                                 txtId: humanSolutionElementID,
                                 self: obj,
-                                onComplete: onComplete
+                                onComplete: options.training_complete
                             });
                         }
                         
@@ -135,6 +139,7 @@ var CBL = function (options) {
             var nextPattern = pendingPatterns.pop();
             if (nextPattern) {
                 log("Loading a pattern for human classification.");
+                openClassifierDialog();
                 document.getElementById(nextPattern.imgId).src = nextPattern.imgSrc;
                 document.getElementById(nextPattern.txtId).focus();
                 document.getElementById(nextPattern.txtId).onkeyup = function(event) {
@@ -160,6 +165,7 @@ var CBL = function (options) {
                             document.getElementById(nextPattern.txtId).onkeyup = function () { };
                             if (typeof nextPattern.onComplete === 'function') {
                                 nextPattern.onComplete();
+                                closeClassifierDialog();
                             }
                         }
                     }
@@ -773,6 +779,52 @@ var CBL = function (options) {
         while ((g = Math.round(Math.random() * 200) + 55) == r);
         while ((b = Math.round(Math.random() * 200) + 55) == r || b == g);
         return toColor(r, g, b);
+    };
+
+    var patternElementID = "cbl-pattern";
+    var humanSolutionElementID = "cbl-solution";
+    
+    var closeClassifierDialog = function () {  
+        document.getElementById("cbl-trainer").style.display = "none";
+    };
+    
+    var openClassifierDialog = function () {     
+        if (document.getElementById("cbl-trainer") != null) {
+            document.getElementById("cbl-trainer").style.display = "flex";
+        }
+        else {    
+            var appendHtml = function (el, str) {
+                var div = document.createElement('div');
+                div.innerHTML = str;
+                while (div.children.length > 0) {
+                    el.appendChild(div.children[0]);
+                }
+            };
+            
+            appendHtml(document.body,
+                '<div id="cbl-trainer">' +
+                '    <div id="cbl-trainer-dialog">' +
+                '        <span id="cbl-close" onclick="">&cross;</span>' +
+                '        <h1>CBL-js Pattern Classifier</h1>' +
+                '        <p>Identify the character in the image below by typing it into the textbox.</p>' +
+                '        <p>Type <span class="cbl-discard">' + options.incorrect_segment_char + '</span> to discard a pattern if the image was not segmented properly.</p>' +
+                '        <div class="cbl-row">' +
+                '            <div class="cbl-cell-50 cbl-right">' +
+                '                <img id="' + patternElementID + '" />' +
+                '            </div>' +
+                '            <div class="cbl-cell-50">' +
+                '                <input id="' + humanSolutionElementID + '" type="text" />' +
+                '            </div>' +
+                '        </div>' +
+                '    </div>' +
+                '    <small><a href="https://github.com/skotz/cbl-js" target="_blank">CBL-js &copy; Scott Clayton</a></small>' +
+                '</div>');
+                
+            document.getElementById("cbl-close").addEventListener("click", function(e) {
+                closeClassifierDialog();
+                e.preventDefault();
+            });
+        }
     };
     
     var log = function (message) {
