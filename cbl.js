@@ -18,6 +18,7 @@ var CBL = function (options) {
         pattern_width: 20,
         pattern_height: 20,
         pattern_maintain_ratio: false,
+        pattern_auto_rotate: false,
         incorrect_segment_char: "\\",
         blob_debug: "",
         blob_console_debug: false,
@@ -523,7 +524,8 @@ var CBL = function (options) {
                     }
                     
                     // Only save blobs of a certain size
-                    if (pixels >= minPixels && pixels <= maxPixels) {
+                    if (pixels >= minPixels && pixels <= maxPixels) {                        
+                        // Scale, crop, and resize blobs
                         blob.width = segmentWidth;
                         blob.height = segmentHeight;
                         blob.getContext('2d').putImageData(blobContext, -leftmost, -topmost, leftmost, topmost, segmentWidth, segmentHeight);
@@ -543,9 +545,14 @@ var CBL = function (options) {
                             // Stretch the image
                             blob.getContext('2d').drawImage(blob, 0, 0, segmentWidth * segmentWidth / (rightmost - leftmost + 1), segmentHeight * segmentHeight / (bottommost - topmost + 1));
                         }
+
+                        // Rotate the blobs using a histogram to minimize the width of non-white pixels
+                        if (options.pattern_auto_rotate) {
+                            blob = obj.histogramRotate(blob);
+                        }
                         
                         blobs.push(blob);
-                            
+
                         // Debugging help
                         if (typeof debugElement !== 'undefined' && debugElement.length) {
                             if (options.blob_console_debug) {
@@ -560,6 +567,57 @@ var CBL = function (options) {
                 }
                 
                 return blobs;
+            },
+            
+            histogramRotate : function (blob) {
+                var initial = new Image();
+                initial.src = blob.toDataURL();
+                
+                var range = 90;
+                var resolution = 5;
+                var best = blob;
+                var bestWidth = blob.width;
+                for (var degrees = -range / 2; degrees <= range / 2; degrees += resolution) {
+                    var test = document.createElement('canvas');
+                    var testctx = test.getContext('2d');
+                    test.width = blob.width;
+                    test.height = blob.height;
+                    testctx.save();
+                    testctx.translate(blob.width / 2, blob.height / 2);
+                    testctx.rotate(degrees * Math.PI/180);
+                    testctx.drawImage(initial, -initial.width / 2, -initial.width / 2);
+                    testctx.restore();
+                    var testImage = testctx.getImageData(0, 0, test.width, test.height)
+                    
+                    // Check width of non-white pixels
+                    var testWidth = 0;
+                    for (var x = 0; x < testImage.width; x++) {
+                        for (var y = 0; y < testImage.height; y++) {
+                            var i = x * 4 + y * 4 * testImage.width;
+                            if (testImage.data[i] != 255 && testImage.data[i + 3] != 0) {
+                                //  Found a non-white pixel in this column
+                                testWidth++;
+                                break;
+                            }
+                            
+                            // testImage.data[i] = testImage.data[i + 3] = 255;
+                            // testImage.data[i + 1] = testImage.data[i + 2] = 0;
+                        }
+                    }
+                    
+                    testctx.putImageData(testImage, 0, 0);
+                    
+                    // Minimize the number of non-white columns
+                    if (testWidth < bestWidth) {
+                        bestWidth = testWidth;
+                        best = test;
+                    }
+                    
+                    // var test2 = document.createElement("img");
+                    // test2.src = test.toDataURL();
+                    // document.getElementById("debugPreprocessed").appendChild(test2);                        
+                }
+                return best;
             }
         };
         return obj;
