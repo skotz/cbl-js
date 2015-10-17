@@ -219,13 +219,19 @@ var CBL = function (options) {
         },
         
         // Serialize the model
-        saveModel: function () {
+        serializeModel: function () {
             var str = "";
             for (var i = 0; i < model.length; i++) {
                 str += "[" + model[i].solution + "=" + model[i].pattern + "]";
             }
             str = LZString.compressToBase64(str);
             return str;
+        },
+        
+        // Save the model to a file
+        saveModel: function () {
+            var str = obj.serializeModel();
+            location.href = "data:application/octet-stream," + encodeURIComponent(str);
         },
         
         // Debug stuff about the model
