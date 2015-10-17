@@ -1,2 +1,3 @@
 *.jar
 *test.html
+/test/
