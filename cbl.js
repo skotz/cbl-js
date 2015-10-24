@@ -242,6 +242,40 @@ var CBL = function (options) {
             }
         },
         
+        // Sort the model by pattern solution alphabetically
+        sortModel: function() {
+            model = model.sort(function(a, b) { return a.solution.localeCompare(b.solution); });
+        },
+        
+        // Output the model as images to an element for debugging
+        visualizeModel: function (elementId) {
+            for (var m = 0; m < model.length; m++) {
+                var pattern = document.createElement('canvas');
+                pattern.width = options.pattern_width;
+                pattern.height = options.pattern_height;
+                var pctx = pattern.getContext('2d').getImageData(0, 0, options.pattern_width, options.pattern_height);
+                
+                var patternValues = model[m].pattern.split('.');
+                
+                for (var x = 0; x < options.pattern_width; x++) {
+                    for (var y = 0; y < options.pattern_height; y++) {
+                        var i = x * 4 + y * 4 * options.pattern_width;
+                        var p = y + x * options.pattern_width;
+                        pctx.data[i] = patternValues[p];
+                        pctx.data[i + 1] = patternValues[p];
+                        pctx.data[i + 2] = patternValues[p];
+                        pctx.data[i + 3] = 255;
+                    }
+                }
+                
+                pattern.getContext('2d').putImageData(pctx, 0, 0); 
+                
+                var test = document.createElement("img");
+                test.src = pattern.toDataURL();
+                document.getElementById(elementId).appendChild(test);
+            }
+        },
+        
         // Condense the model by combining patterns with the same solution
         condenseModel: function () {
             var newModel = new Array();
@@ -675,6 +709,9 @@ var CBL = function (options) {
             for (var y = 0; y < image.height; y++) {
                 var i = x * 4 + y * 4 * image.width;
                 var brightness = Math.round(0.34 * image.data[i] + 0.5 * image.data[i + 1] + 0.16 * image.data[i + 2]);
+                if (image.data[i + 3] < 255) {
+                    brightness = 255;
+                }
                 pattern.push(brightness);
             }
         }
