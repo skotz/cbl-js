@@ -9,18 +9,18 @@
 <body>
     <div class="main">
         <img id="captcha" src="../captchas/cryptographp/5HFC.gif" />
-		<br />
-		<input type="text" id="solution">
-		<br />
-		<a href="javascript: void(0)" id="solve" onclick="solve()" style="display: none">Solve!</a>
+        <br />
+        <input type="text" id="solution">
+        <br />
+        <a href="javascript: void(0)" id="solve" onclick="solve()" style="display: none">Solve!</a>
     </div>
     <script>
-		var cbl = new CBL({
+        var cbl = new CBL({
             preprocess: function(img) {
                 img.binarize(220);
                 img.colorRegions(50);
             },
-			/* Load the model we saved during training. */
+            /* Load the model we saved during training. */
             model_file: "model.txt",
             character_set: "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
             blob_min_pixels: 50,
@@ -28,20 +28,20 @@
             pattern_width: 25,
             pattern_height: 25,
             perceptive_colorspace: true,
-			/* Define a method that fires immediately after successfully loading a saved model. */
+            /* Define a method that fires immediately after successfully loading a saved model. */
             model_loaded: function() {
-				// Don't enable the solve button until the model is loaded.
-				document.getElementById('solve').style.display = "block";
+                // Don't enable the solve button until the model is loaded.
+                document.getElementById('solve').style.display = "block";
             }
-        });	
-		
-		var solve = function() {
-			// Using the saved model, attempt to find a solution to a specific image.
-			cbl.solve("captcha").done(function (solution) {
-				// Upon finding a solution, fill the solution textbox with the answer.
-				document.getElementById('solution').value = solution;
-			});
-		}
+        });    
+        
+        var solve = function() {
+            // Using the saved model, attempt to find a solution to a specific image.
+            cbl.solve("captcha").done(function (solution) {
+                // Upon finding a solution, fill the solution textbox with the answer.
+                document.getElementById('solution').value = solution;
+            });
+        }
     </script>
 </body>
 </html>
