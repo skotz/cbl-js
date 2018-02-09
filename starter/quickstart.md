@@ -1,5 +1,8 @@
 # Solving a CAPTCHA with CBL-JS
 
+The best way to get started is to download or clone this repository and play around with the example scripts in the startup folder.
+This walkthrough is very high level and is meant to accompany those example scripts.
+
 ## Setup
 
 **Please note:** Certain features (such as downloading a model or loading an image) do not work over the file:// protocol for local development. 
