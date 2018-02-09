@@ -1,0 +1,47 @@
+<!doctype html>
+<html>
+<head>
+    <title>CBL-JS Solver</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="../cbl.css" />
+    <script type="text/javascript" src="../cbl.min.js"></script>
+</head>
+<body>
+    <div class="main">
+        <img id="captcha" src="../captchas/cryptographp/5HFC.gif" />
+		<br />
+		<input type="text" id="solution">
+		<br />
+		<a href="javascript: void(0)" id="solve" onclick="solve()" style="display: none">Solve!</a>
+    </div>
+    <script>
+		var cbl = new CBL({
+            preprocess: function(img) {
+                img.binarize(220);
+                img.colorRegions(50);
+            },
+			/* Load the model we saved during training. */
+            model_file: "model.txt",
+            character_set: "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
+            blob_min_pixels: 50,
+            blob_max_pixels: 400,
+            pattern_width: 25,
+            pattern_height: 25,
+            perceptive_colorspace: true,
+			/* Define a method that fires immediately after successfully loading a saved model. */
+            model_loaded: function() {
+				// Don't enable the solve button until the model is loaded.
+				document.getElementById('solve').style.display = "block";
+            }
+        });	
+		
+		var solve = function() {
+			// Using the saved model, attempt to find a solution to a specific image.
+			cbl.solve("captcha").done(function (solution) {
+				// Upon finding a solution, fill the solution textbox with the answer.
+				document.getElementById('solution').value = solution;
+			});
+		}
+    </script>
+</body>
+</html>
