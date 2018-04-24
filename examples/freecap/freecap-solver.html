@@ -1,0 +1,111 @@
+<!doctype html>
+<html>
+<head>
+    <title>CBL-js Example :: freeCap CAPTCHA Solver</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="../../cbl.min.css" />
+    <link rel="stylesheet" type="text/css" href="freecap.css" />
+    <script type="text/javascript" src="../../cbl.min.js"></script>
+</head>
+<body>
+    <div class="main">
+        <div id="captchas">
+          <img id="img-hauaqu" src="../../captchas/freecap/hauaqu.png" />
+          <input type="text" id="hauaqu">
+          <img id="img-luoel" src="../../captchas/freecap/luoel.png" />
+          <input type="text" id="luoel">
+          <img id="img-muqoz" src="../../captchas/freecap/muqoz.png" />
+          <input type="text" id="muqoz">
+          <img id="img-raoon" src="../../captchas/freecap/raoon.png" />
+          <input type="text" id="raoon">
+          <img id="img-xbeea" src="../../captchas/freecap/xbeea.png" />
+          <input type="text" id="xbeea">
+          <img id="img-yoeva" src="../../captchas/freecap/yoeva.png" />
+          <input type="text" id="yoeva">
+          <img id="img-zueme" src="../../captchas/freecap/zueme.png" />
+          <input type="text" id="zueme">
+          <img id="img-hgools" src="../../captchas/freecap/hgools.png" />
+          <input type="text" id="hgools"> 
+          <img id="img-rpoeo" src="../../captchas/freecap/rpoeo.png" />
+          <input type="text" id="rpoeo"> 
+          <img id="img-keoym" src="../../captchas/freecap/keoym.png" />
+          <input type="text" id="keoym">
+          <img id="img-vawmxe" src="../../captchas/freecap/vawmxe.png" />
+          <input type="text" id="vawmxe">
+          <img id="img-qdauu" src="../../captchas/freecap/qdauu.png" />
+          <input type="text" id="qdauu">
+          <img id="img-rbymzo" src="../../captchas/freecap/rbymzo.png" />
+          <input type="text" id="rbymzo">
+          <img id="img-wmecn" src="../../captchas/freecap/wmecn.png" />
+          <input type="text" id="wmecn">
+        </div>
+        <br />
+        <br />
+        <a href="javascript: void(0)" id="solve" onclick="solve()" style="display: none">Solve!</a>
+    </div>
+    <script>
+        var cbl = new CBL({
+            preprocess: function(img) {
+              img.removeGray(80);
+              img.blur(1);
+              img.binarize(255);
+              img.colorRegions(40, true);
+            },
+            /* Load the model we saved during training. */
+            model_file: "freecap-model.txt",
+            character_set: "abcdefghijklmnopqrstuvwxyz",
+            blob_min_pixels: 1,
+            blob_max_pixels: 400,
+            pattern_width: 25,
+            pattern_height: 25,
+            perceptive_colorspace: true,
+            /* Define a method that fires immediately after successfully loading a saved model. */
+            model_loaded: function() {
+                // Don't enable the solve button until the model is loaded.
+                document.getElementById('solve').style.display = "block";
+            }
+        });    
+        
+        var solve = function() {
+            var t0 = performance.now();
+            var isError = false;
+            var errQty = 0;
+            var solveElem = document.getElementById('solve');
+            var solveElemState = solveElem;
+            var newEl = document.createElement('div');
+            var loader = document.createElement('div');
+            newEl.className = 'container';
+            loader.className = 'loader';
+            newEl.appendChild(loader)
+            solveElem.parentNode.replaceChild(newEl, solveElem);
+            setTimeout(function () {
+              // Using the saved model, attempt to find a solution to a specific image.
+              var ancestor = document.getElementById('captchas'),
+              descendents = ancestor.getElementsByTagName('img');         
+              for (var i = 0; i < descendents.length; i++) {
+                var fullPath = descendents[i].src;
+                var fileName = fullPath.replace(/^.*[\\\/]/, '').replace('.png', '');
+                cbl.solve('img-' + fileName).done(function (solution) {
+                  var solutionField = document.getElementById(fileName);
+                  solutionField.value = solution;
+                  // Compare solution with filename and turn green if ok
+                  if (solution === fileName) {
+                    solutionField.style = 'background: green; color: white;';
+                  } else {
+                    solutionField.style = 'background: red;';
+                    isError = true
+                    errQty = errQty + 1
+                  }
+                });
+              }    
+              var t1 = performance.now();
+              if (isError) {
+                newEl.innerHTML = 'Unable to solve [' + errQty + '/' + descendents.length + ']<br />Processing time ' + (t1 - t0) / 1000 + ' seconds';
+              } else {
+                newEl.innerHTML = 'Solved<br />Processing time ' + (t1 - t0) / 1000 + ' seconds';
+              }
+            }, 100);
+        }
+    </script>
+</body>
+</html>
