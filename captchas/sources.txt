@@ -3,6 +3,3 @@ http://www.codeproject.com/Articles/5947/CAPTCHA-Image
 
 CryptograPHP CAPTCHA
 [Website no longer exists]
-
-freeCap
-http://www.puremango.co.uk
