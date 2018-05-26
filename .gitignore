@@ -1,3 +1,4 @@
 *.jar
 *test.html
 /test/
+desktop.ini
