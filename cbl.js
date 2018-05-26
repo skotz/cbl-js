@@ -517,6 +517,15 @@ var CBL = function (options) {
                                         [-1,  8, -1],
                                         [-1, -1, -1] ]);
             },
+            
+            // Crop an image
+            cropRelative : function (left, top, right, bottom) {
+                var image = canvas.getContext('2d').getImageData(left, top, canvas.width - left - right, canvas.height - top - bottom);
+                canvas.width = canvas.width - left - right;
+                canvas.height = canvas.height - top - bottom;
+                canvas.getContext('2d').putImageData(image, 0, 0);
+                return this;
+            },
                 
             /***********************************************\
             | Image Segmentation Methods                    |
