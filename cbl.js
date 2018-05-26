@@ -397,7 +397,7 @@ var CBL = function (options) {
                             if (j + w2 < length && pixelCompare(j + w2, targetcolor, targettotal, fillcolor, data, length, tolerance)) {
                                 Q.push(j + w2);
                             }
-                        } 			
+                        }             
                     }
                 }
                 if (internalImage) {
@@ -475,48 +475,48 @@ var CBL = function (options) {
                 canvas.getContext('2d').putImageData(image, 0, 0);
                 return this;
             },
-			
-			// Apply a convolution filter
-			convolute : function (matrix) {
+            
+            // Apply a convolution filter
+            convolute : function (matrix) {
                 var image = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
                 var out = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
-				var w = matrix[0].length;
-				var h = matrix.length;
-				var half = Math.floor(h / 2);
-				var factor = 1;
-				var bias = 0;
-				
-				for (var y = 0; y < image.height - 1; y++) {
-					for (var x = 0; x < image.width - 1; x++) {
-						var px = (y * image.width + x) * 4;
-						var r = 0, g = 0, b = 0;
-					
-						for (var cy = 0; cy < w; ++cy) {
-							for (var cx = 0; cx < h; ++cx) {
-								var cpx = ((y + (cy - half)) * image.width + (x + (cx - half))) * 4;
-								r += image.data[cpx + 0] * matrix[cy][cx];
-								g += image.data[cpx + 1] * matrix[cy][cx];
-								b += image.data[cpx + 2] * matrix[cy][cx];
-							}
-						}
-					
-						out.data[px + 0] = factor * r + bias;
-						out.data[px + 1] = factor * g + bias;
-						out.data[px + 2] = factor * b + bias;
-						out.data[px + 3] = 255;
-					}
-				}
-				
+                var w = matrix[0].length;
+                var h = matrix.length;
+                var half = Math.floor(h / 2);
+                var factor = 1;
+                var bias = 0;
+                
+                for (var y = 0; y < image.height - 1; y++) {
+                    for (var x = 0; x < image.width - 1; x++) {
+                        var px = (y * image.width + x) * 4;
+                        var r = 0, g = 0, b = 0;
+                    
+                        for (var cy = 0; cy < w; ++cy) {
+                            for (var cx = 0; cx < h; ++cx) {
+                                var cpx = ((y + (cy - half)) * image.width + (x + (cx - half))) * 4;
+                                r += image.data[cpx + 0] * matrix[cy][cx];
+                                g += image.data[cpx + 1] * matrix[cy][cx];
+                                b += image.data[cpx + 2] * matrix[cy][cx];
+                            }
+                        }
+                    
+                        out.data[px + 0] = factor * r + bias;
+                        out.data[px + 1] = factor * g + bias;
+                        out.data[px + 2] = factor * b + bias;
+                        out.data[px + 3] = 255;
+                    }
+                }
+                
                 canvas.getContext('2d').putImageData(out, 0, 0);
                 return this;
-			},
-			
-			// Apply an erosion filter
-			erode : function () {
-				return this.convolute([ [-1, -1, -1],
-										[-1,  8, -1],
-										[-1, -1, -1] ]);
-			},
+            },
+            
+            // Apply an erosion filter
+            erode : function () {
+                return this.convolute([ [-1, -1, -1],
+                                        [-1,  8, -1],
+                                        [-1, -1, -1] ]);
+            },
                 
             /***********************************************\
             | Image Segmentation Methods                    |
@@ -537,7 +537,7 @@ var CBL = function (options) {
                     segmentHeight = 20;
                 }
                 
-                var image = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);    
+                var image = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
                 var toColor = function (d, i) { return d[i] * 255 * 255 + d[i + 1] * 256 + d[i + 2]; };
                 
                 // Find distinct colors
@@ -602,24 +602,27 @@ var CBL = function (options) {
                     // Only save blobs of a certain size
                     if (pixels >= minPixels && pixels <= maxPixels) {                        
                         // Scale, crop, and resize blobs
+                        var temp = document.createElement('canvas');
+                        temp.width = rightmost - leftmost;
+                        temp.height = bottommost - topmost;
+                        temp.getContext('2d').putImageData(blobContext, -leftmost, -topmost, leftmost, topmost, rightmost - leftmost, bottommost - topmost);
                         blob.width = segmentWidth;
                         blob.height = segmentHeight;
-                        blob.getContext('2d').putImageData(blobContext, -leftmost, -topmost, leftmost, topmost, segmentWidth, segmentHeight);
                         if (options.pattern_maintain_ratio) {
                             var dWidth = rightmost - leftmost;
                             var dHeight = bottommost - topmost;
                             if (dWidth / segmentWidth > dHeight / segmentHeight) {
                                 // Scale width
-                                blob.getContext('2d').drawImage(blob, 0, 0, segmentWidth * segmentWidth / (rightmost - leftmost + 1), segmentHeight * segmentHeight / (rightmost - leftmost + 1));
+                                blob.getContext('2d').drawImage(temp, 0, 0, segmentWidth, dHeight * (segmentWidth / dWidth));
                             }
                             else {
                                 // Scale height
-                                blob.getContext('2d').drawImage(blob, 0, 0, segmentWidth * segmentWidth / (bottommost - topmost + 1), segmentHeight * segmentHeight / (bottommost - topmost + 1));
+                                blob.getContext('2d').drawImage(temp, 0, 0, dWidth * (segmentHeight / dHeight), segmentHeight);
                             }
                         }
                         else {
                             // Stretch the image
-                            blob.getContext('2d').drawImage(blob, 0, 0, segmentWidth * segmentWidth / (rightmost - leftmost + 1), segmentHeight * segmentHeight / (bottommost - topmost + 1));
+                            blob.getContext('2d').drawImage(temp, 0, 0, segmentWidth, segmentHeight);
                         }
 
                         // Rotate the blobs using a histogram to minimize the width of non-white pixels
