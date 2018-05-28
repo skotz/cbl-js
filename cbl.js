@@ -232,7 +232,10 @@ var CBL = function (options) {
         // Save the model to a file
         saveModel: function () {
             var str = obj.serializeModel();
-            location.href = "data:application/octet-stream," + encodeURIComponent(str);
+            var anchor = document.createElement('a');
+            anchor.href = "data:application/octet-stream," + encodeURIComponent(str);
+            anchor.setAttribute('download', 'cbl-model.dat');
+            anchor.click();
         },
         
         // Debug stuff about the model
