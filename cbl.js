@@ -480,26 +480,30 @@ var CBL = function (options) {
             },
             
             // Apply a convolution filter
-            convolute : function (matrix) {
+            convolute : function (matrix, factor) {
                 var image = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
                 var out = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
                 var w = matrix[0].length;
                 var h = matrix.length;
                 var half = Math.floor(h / 2);
-                var factor = 1;
+                if (typeof factor === 'undefined') {
+                    factor = 1;
+                }
                 var bias = 0;
                 
                 for (var y = 0; y < image.height - 1; y++) {
                     for (var x = 0; x < image.width - 1; x++) {
-                        var px = (y * image.width + x) * 4;
-                        var r = 0, g = 0, b = 0;
+                        var px = x * 4 + y * 4 * image.width;
+                        var r = 0;
+                        var g = 0;
+                        var b = 0;
                     
-                        for (var cy = 0; cy < w; ++cy) {
-                            for (var cx = 0; cx < h; ++cx) {
+                        for (var cy = 0; cy < w; cy++) {
+                            for (var cx = 0; cx < h; cx++) {
                                 var cpx = ((y + (cy - half)) * image.width + (x + (cx - half))) * 4;
-                                r += image.data[cpx + 0] * matrix[cy][cx];
-                                g += image.data[cpx + 1] * matrix[cy][cx];
-                                b += image.data[cpx + 2] * matrix[cy][cx];
+                                r += image.data[(cpx + image.data.length) % image.data.length] * matrix[cy][cx];
+                                g += image.data[(cpx + 1 + image.data.length) % image.data.length] * matrix[cy][cx];
+                                b += image.data[(cpx + 2 + image.data.length) % image.data.length] * matrix[cy][cx];
                             }
                         }
                     
