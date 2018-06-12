@@ -619,14 +619,14 @@ var CBL = function (options) {
                     if (pixels >= minPixels && pixels <= maxPixels) {                        
                         // Scale, crop, and resize blobs
                         var temp = document.createElement('canvas');
-                        temp.width = rightmost - leftmost;
-                        temp.height = bottommost - topmost;
-                        temp.getContext('2d').putImageData(blobContext, -leftmost, -topmost, leftmost, topmost, rightmost - leftmost, bottommost - topmost);
+                        temp.width = rightmost - leftmost + 1;
+                        temp.height = bottommost - topmost + 1;
+                        temp.getContext('2d').putImageData(blobContext, -leftmost, -topmost, leftmost, topmost, temp.width, temp.height);
                         blob.width = segmentWidth;
                         blob.height = segmentHeight;
                         if (options.pattern_maintain_ratio) {
-                            var dWidth = rightmost - leftmost;
-                            var dHeight = bottommost - topmost;
+                            var dWidth = temp.width;
+                            var dHeight = temp.height;
                             if (dWidth / segmentWidth > dHeight / segmentHeight) {
                                 // Scale width
                                 blob.getContext('2d').drawImage(temp, 0, 0, segmentWidth, dHeight * (segmentWidth / dWidth));
