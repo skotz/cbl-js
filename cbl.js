@@ -25,7 +25,8 @@ var CBL = function (options) {
         allow_console_log: false,
         allow_console_warn: true,
         perceptive_colorspace: false,
-        character_set: "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+        character_set: "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
+        fixed_blob_locations: [ ] // Expected format: [ { x1: 0, y1: 0, x2: 0, y2: 0 }, ... ]
     };
 
     options = options || {};
@@ -79,11 +80,19 @@ var CBL = function (options) {
                     options.preprocess(cblImage);
                     
                     // Run segmentation
-                    var blobs = cblImage.segmentBlobs(options.blob_min_pixels, 
+                    var blobs;
+                    if (options.fixed_blob_locations.length > 0) {
+                        blobs = cblImage.segmentBlocks(options.pattern_width, 
+                                                       options.pattern_height,
+                                                       options.fixed_blob_locations,
+                                                       options.blob_debug);
+                    } else {
+                        blobs = cblImage.segmentBlobs(options.blob_min_pixels, 
                                                       options.blob_max_pixels, 
                                                       options.pattern_width, 
                                                       options.pattern_height, 
                                                       options.blob_debug);
+                    }
                     
                     // FOR TRAINING
                     // Set up a list of patterns for a human to classify
@@ -569,6 +578,74 @@ var CBL = function (options) {
             /***********************************************\
             | Image Segmentation Methods                    |
             \***********************************************/
+            
+            // Cut the image into separate, pre-defined sections
+            segmentBlocks : function (segmentWidth, segmentHeight, segmentLocations, debugElement) {
+                if (typeof segmentWidth === 'undefined') {
+                    segmentWidth = 20;
+                }
+                if (typeof segmentHeight === 'undefined') {
+                    segmentHeight = 20;
+                }
+                if (typeof segmentLocations === 'undefined') {
+                    segmentLocations = [ ];
+                }
+                
+                var image = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
+                
+                // Create blobs   
+                var blobs = new Array();
+                for (var c = 0; c < segmentLocations.length; c++) {
+                    var blob = document.createElement('canvas');
+                    blob.width = image.width;
+                    blob.height = image.height;
+                    var blobContext = blob.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
+                    var blobData = blobContext.data;
+                    var pixels = 0;
+                    var leftmost = segmentLocations[c].x1;
+                    var rightmost = segmentLocations[c].x2;
+                    var topmost = segmentLocations[c].y1;
+                    var bottommost = segmentLocations[c].y2;
+                                           
+                    // Scale, crop, and resize blobs
+                    var temp = document.createElement('canvas');
+                    temp.width = rightmost - leftmost + 1;
+                    temp.height = bottommost - topmost + 1;
+                    temp.getContext('2d').putImageData(image, -leftmost, -topmost, leftmost, topmost, temp.width, temp.height);
+                    blob.width = segmentWidth;
+                    blob.height = segmentHeight;
+                    if (options.pattern_maintain_ratio) {
+                        var dWidth = temp.width;
+                        var dHeight = temp.height;
+                        if (dWidth / segmentWidth > dHeight / segmentHeight) {
+                            // Scale width
+                            blob.getContext('2d').drawImage(temp, 0, 0, segmentWidth, dHeight * (segmentWidth / dWidth));
+                        }
+                        else {
+                            // Scale height
+                            blob.getContext('2d').drawImage(temp, 0, 0, dWidth * (segmentHeight / dHeight), segmentHeight);
+                        }
+                    }
+                    else {
+                        // Stretch the image
+                        blob.getContext('2d').drawImage(temp, 0, 0, segmentWidth, segmentHeight);
+                    }
+                    
+                    blobs.push(blob);
+
+                    // Debugging help
+                    if (typeof debugElement !== 'undefined' && debugElement.length) {
+                        if (options.blob_console_debug) {
+                            log("Blob size = " + pixels);
+                        }
+                        var test = document.createElement("img");
+                        test.src = blob.toDataURL();
+                        document.getElementById(debugElement).appendChild(test);
+                    }
+                }
+                
+                return blobs;                
+            },
             
             // Cut the image into separate blobs where each distinct color is a blob
             segmentBlobs : function (minPixels, maxPixels, segmentWidth, segmentHeight, debugElement) {
