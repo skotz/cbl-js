@@ -525,6 +525,38 @@ var CBL = function (options) {
                                         [-1, -1, -1] ]);
             },
             
+            // Apply an specific filter to each pixel
+            // The filter method should accept and return one parameter that will have three properties: r, g, and b
+            // foreach(function (p) { return p; })
+            foreach : function (filter) {
+                var image = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
+                for (var x = 0; x < image.width; x++) {
+                    for (var y = 0; y < image.height; y++) {
+                        var i = x * 4 + y * 4 * image.width;
+                        var pixel = { r: image.data[i + 0], g: image.data[i + 1], b: image.data[i + 2] };
+                        
+                        pixel = filter(pixel);
+                        
+                        image.data[i + 0] = pixel.r;
+                        image.data[i + 1] = pixel.g;
+                        image.data[i + 2] = pixel.b;
+                        image.data[i + 3] = 255;
+                    }
+                }
+                canvas.getContext('2d').putImageData(image, 0, 0);
+                return this;
+            },
+            
+            // Invert the color of every pixel
+            invert : function (filter) {
+                return this.foreach(function (p) {
+                    p.r = 255 - p.r;
+                    p.g = 255 - p.g;
+                    p.b = 255 - p.b;
+                    return p;
+                });
+            },
+            
             // Crop an image
             cropRelative : function (left, top, right, bottom) {
                 var image = canvas.getContext('2d').getImageData(left, top, canvas.width - left - right, canvas.height - top - bottom);
