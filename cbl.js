@@ -574,6 +574,19 @@ var CBL = function (options) {
                 canvas.getContext('2d').putImageData(image, 0, 0);
                 return this;
             },
+            
+            /***********************************************\
+            | Image Helper Methods                          |
+            \***********************************************/
+            
+            // Get the R, G, and B values of a pixel at a given location in the image
+            // Returned object is in the format { r: 0, g: 0, b: 0 }
+            getPixel : function (x, y) {
+                var image = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
+                var i = x * 4 + y * 4 * image.width;
+                var pixel = { r: image.data[i + 0], g: image.data[i + 1], b: image.data[i + 2] };
+                return pixel;
+            },
                 
             /***********************************************\
             | Image Segmentation Methods                    |
