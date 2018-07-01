@@ -2,7 +2,7 @@
  * CBL-js
  * CAPTCHA Breaking Library in JavaScript
  * https://github.com/skotz/cbl-js
- * Copyright (c) 2015 Scott Clayton
+ * Copyright (c) 2015-2018 Scott Clayton
  */
  
 var CBL = function (options) {
@@ -417,20 +417,40 @@ var CBL = function (options) {
                 }
             },
             
-            // Blur the image
-            blur : function (iterations) {
-                var amount = 1;
-                var ctx = canvas.getContext('2d');
-                ctx.globalAlpha = 0.3;
+            // Blur the image (box blur)
+            blur : function (level) {                
+                if (typeof level === 'undefined') {
+                    level = 1;
+                }
                 
-                if (typeof iterations === 'undefined') {
-                    iterations = 8;
+                if (level == 2) {
+                    return this.convolute([ [1, 1, 1, 1, 1],
+                                            [1, 1, 1, 1, 1],
+                                            [1, 1, 1, 1, 1],
+                                            [1, 1, 1, 1, 1],
+                                            [1, 1, 1, 1, 1] ], 1.0/25);
                 }
-
-                for (var i = 1; i <= iterations; i++) {
-                    ctx.drawImage(canvas, amount, 0, canvas.width - amount, canvas.height, 0, 0, canvas.width - amount, canvas.height);
-                    ctx.drawImage(canvas, 0, amount, canvas.width, canvas.height - amount, 0, 0, canvas.width, canvas.height - amount);
+                else if (level == 3) {
+                    return this.convolute([ [1, 1, 1, 1, 1, 1, 1],
+                                            [1, 1, 1, 1, 1, 1, 1],
+                                            [1, 1, 1, 1, 1, 1, 1],
+                                            [1, 1, 1, 1, 1, 1, 1],
+                                            [1, 1, 1, 1, 1, 1, 1],
+                                            [1, 1, 1, 1, 1, 1, 1],
+                                            [1, 1, 1, 1, 1, 1, 1] ], 1.0/49);
                 }
+                else {
+                    return this.convolute([ [1, 1, 1],
+                                            [1, 1, 1],
+                                            [1, 1, 1] ], 1.0/9);
+                }
+            },
+            
+            // Sharpen
+            sharpen : function () {
+                return this.convolute([ [ 0, -1,  0],
+                                        [-1,  5, -1],
+                                        [ 0, -1,  0] ]);
             },
             
             // Convert the image to grayscale        
