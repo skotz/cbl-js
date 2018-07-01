@@ -335,9 +335,12 @@ var CBL = function (options) {
             \***********************************************/
 
             // Fills each distinct region in the image with a different random color
-            colorRegions: function (tolerance, ignoreWhite) {
+            colorRegions: function (tolerance, ignoreWhite, pixelJump) {
                 if (typeof ignoreWhite === 'undefined') {
                     ignoreWhite = false;
+                }
+                if (typeof pixelJump === 'undefined') {
+                    pixelJump = 0;
                 }
                 var exclusions = new Array();
                 var image = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
@@ -345,7 +348,7 @@ var CBL = function (options) {
                     for (var y = 0; y < image.height; y++) {
                         var i = x * 4 + y * 4 * image.width;
                         if (!arrayContains(exclusions, i)) {
-                            obj.floodfill(x, y, getRandomColor(), tolerance, image, exclusions, ignoreWhite);
+                            obj.floodfill(x, y, getRandomColor(), tolerance, image, exclusions, ignoreWhite, pixelJump);
                         }
                     }
                 }
@@ -368,11 +371,14 @@ var CBL = function (options) {
             },
 
             // Flood fill a given color into a region starting at a certain point
-            floodfill: function (x, y, fillcolor, tolerance, image, exclusions, ignoreWhite) {
+            floodfill: function (x, y, fillcolor, tolerance, image, exclusions, ignoreWhite, pixelJump) {
                 var internalImage = false;
                 if (typeof image === 'undefined') {
                     internalImage = true;
                     image = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
+                }
+                if (typeof pixelJump === 'undefined') {
+                    pixelJump = 0;
                 }
                 var data = image.data;
                 var length = data.length;
@@ -401,6 +407,12 @@ var CBL = function (options) {
 
                         while (mw < (w -= 4) && pixelCompareAndSet(w, targetcolor, targettotal, fillcolor, data, length, tolerance, exclusions, ignoreWhite));
                         while (me > (e += 4) && pixelCompareAndSet(e, targetcolor, targettotal, fillcolor, data, length, tolerance, exclusions, ignoreWhite));
+
+                        if (pixelJump > 0) {
+                            // Skip over a certain number of pixels that don't match
+                            w -= pixelJump * 4;
+                            e += pixelJump * 4;
+                        }
 
                         for (var j = w; j < e; j += 4) {
                             if (j - w2 >= 0 && pixelCompare(j - w2, targetcolor, targettotal, fillcolor, data, length, tolerance)) {
