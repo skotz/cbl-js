@@ -22,7 +22,7 @@
             preprocess: function(img) {
                 img.removeGray(20);
                 img.debugImage("debugPreprocessed");
-                img.blur(2);
+                img.blur();
                 img.debugImage("debugPreprocessed");
                 img.binarize(190);
                 img.debugImage("debugPreprocessed");

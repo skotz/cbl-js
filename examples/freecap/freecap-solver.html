@@ -10,12 +10,12 @@
 <body>
     <div class="main">
         <div id="captchas">
-          <img id="img-narlh" src="narlh.png" />
-          <input type="text" id="narlh">
-          <img id="img-rneoa" src="rneoa.png" />
-          <input type="text" id="rneoa">
-          <img id="img-zouoyr" src="zouoyr.png" />
-          <input type="text" id="zouoyr">
+            <img id="img-narlh" src="narlh.png" />
+            <input type="text" id="narlh">
+            <img id="img-rneoa" src="rneoa.png" />
+            <input type="text" id="rneoa">
+            <img id="img-zouoyr" src="zouoyr.png" />
+            <input type="text" id="zouoyr">
         </div>
         <br />
         <br />
@@ -24,26 +24,24 @@
     <script>
         var cbl = new CBL({
             preprocess: function(img) {
-              img.removeGray(80);
-              img.blur(1);
-              img.binarize(255);
-              img.colorRegions(40, true);
+                img.removeGray(80);
+                img.colorRegions(40, true, 1);
             },
             /* Load the model we saved during training. */
             model_file: "freecap-model.txt",
             character_set: "abcdeghklmnopqrsuvwxyz",
-            blob_min_pixels: 1,
-            blob_max_pixels: 400,
-            pattern_width: 25,
-            pattern_height: 25,
+            blob_min_pixels: 5,
+            blob_max_pixels: 100,
+            pattern_width: 10,
+            pattern_height: 10,
             perceptive_colorspace: true,
             /* Define a method that fires immediately after successfully loading a saved model. */
             model_loaded: function() {
                 // Don't enable the solve button until the model is loaded.
                 document.getElementById('solve').style.display = "block";
             }
-        });    
-        
+        });
+
         var solve = function() {
             var t0 = performance.now();
             var isError = false;
@@ -54,34 +52,34 @@
             var loader = document.createElement('div');
             newEl.className = 'container';
             loader.className = 'loader';
-            newEl.appendChild(loader)
+            newEl.appendChild(loader);
             solveElem.parentNode.replaceChild(newEl, solveElem);
             setTimeout(function () {
-              // Using the saved model, attempt to find a solution to a specific image.
-              var ancestor = document.getElementById('captchas'),
-              descendents = ancestor.getElementsByTagName('img');         
-              for (var i = 0; i < descendents.length; i++) {
-                var fullPath = descendents[i].src;
-                var fileName = fullPath.replace(/^.*[\\\/]/, '').replace('.png', '');
-                cbl.solve('img-' + fileName).done(function (solution) {
-                  var solutionField = document.getElementById(fileName);
-                  solutionField.value = solution;
-                  // Compare solution with filename and turn green if ok
-                  if (solution === fileName) {
-                    solutionField.style = 'background: green; color: white;';
-                  } else {
-                    solutionField.style = 'background: red;';
-                    isError = true
-                    errQty = errQty + 1
-                  }
-                });
-              }    
-              var t1 = performance.now();
-              if (isError) {
-                newEl.innerHTML = 'Unable to solve [' + errQty + '/' + descendents.length + ']<br />Processing time ' + (t1 - t0) / 1000 + ' seconds';
-              } else {
-                newEl.innerHTML = 'Solved<br />Processing time ' + (t1 - t0) / 1000 + ' seconds';
-              }
+                // Using the saved model, attempt to find a solution to a specific image.
+                var ancestor = document.getElementById('captchas'),
+                descendents = ancestor.getElementsByTagName('img');
+                for (var i = 0; i < descendents.length; i++) {
+                    var fullPath = descendents[i].src;
+                    var fileName = fullPath.replace(/^.*[\\\/]/, '').replace('.png', '');
+                    cbl.solve('img-' + fileName).done(function (prediction) {
+                        var solutionField = document.getElementById(fileName);
+                        solutionField.value = prediction;
+                        // Compare prediction with filename and turn green if correct
+                        if (prediction === fileName) {
+                            solutionField.style = 'background: green; color: white;';
+                        } else {
+                            solutionField.style = 'background: red;';
+                            isError = true;
+                            errQty = errQty + 1;
+                        }
+                    });
+                }
+                var t1 = performance.now();
+                if (isError) {
+                    newEl.innerHTML = 'Unable to solve [' + errQty + '/' + descendents.length + ']<br />Processing time ' + (t1 - t0) / 1000 + ' seconds';
+                } else {
+                    newEl.innerHTML = 'Solved<br />Processing time ' + (t1 - t0) / 1000 + ' seconds';
+                }
             }, 100);
         }
     </script>

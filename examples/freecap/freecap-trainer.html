@@ -1,0 +1,63 @@
+<!doctype html>
+<html>
+<head>
+    <title>CBL-js Example :: freeCap CAPTCHA Solver</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="../../cbl.min.css" />
+    <link rel="stylesheet" type="text/css" href="freecap.css" />
+    <script type="text/javascript" src="../../cbl.js"></script>
+</head>
+<body>
+    <div id="debugPreprocessed"></div>
+    <div id="debugSegmented"></div>
+    <div class="main">
+        <a href="javascript: void(0)" id="solve" onclick="saveModel()" style="display: none">Download Model (After Training)</a>
+    </div>
+    <script>
+        var cbl = new CBL({
+            preprocess: function(img) {
+                img.removeGray(80);
+                img.debugImage("debugPreprocessed");
+                img.colorRegions(40, true, 1);
+                img.debugImage("debugPreprocessed");
+            },
+            model_file: "freecap-model.txt",
+            character_set: "abcdeghklmnopqrsuvwxyz",
+            blob_debug: "debugSegmented",
+            blob_min_pixels: 5,
+            blob_max_pixels: 100,
+            pattern_width: 10,
+            pattern_height: 10,
+            perceptive_colorspace: true,
+            model_loaded: function() {
+                document.getElementById('solve').style.display = "block";
+            }
+        });
+
+        // Training set
+        cbl.train("../../captchas/freecap/hauaqu.png");
+        cbl.train("../../captchas/freecap/hgools.png");
+        cbl.train("../../captchas/freecap/keoym.png");
+        cbl.train("../../captchas/freecap/luoel.png");
+        cbl.train("../../captchas/freecap/muqoz.png");
+        cbl.train("../../captchas/freecap/qdauu.png");
+        cbl.train("../../captchas/freecap/raoon.png");
+        cbl.train("../../captchas/freecap/rbymzo.png");
+        cbl.train("../../captchas/freecap/rpoeo.png");
+        cbl.train("../../captchas/freecap/vawmxe.png");
+        cbl.train("../../captchas/freecap/wmecn.png");
+        cbl.train("../../captchas/freecap/xbeea.png");
+        cbl.train("../../captchas/freecap/yoeva.png");
+        cbl.train("../../captchas/freecap/zueme.png");
+
+        var saveModel = function() {
+            cbl.saveModel();
+        }
+
+        // Testing set
+        // cbl.train("../captchas/freecap/narlh.png");
+        // cbl.train("../captchas/freecap/rneoa.png");
+        // cbl.train("../captchas/freecap/zouoyr.png");
+    </script>
+</body>
+</html>
