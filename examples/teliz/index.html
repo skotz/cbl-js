@@ -1,0 +1,57 @@
+<!doctype html>
+<html>
+<head>
+    <title>Teliz</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script type="text/javascript" src="../../cbl.js"></script>
+    <style>
+        #debugPreprocessed img {
+            display: block;
+        }
+        .note {
+            margin: 0 0 15px 0;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="note">
+        Note: This is a segmentation-only example in response to <a href="https://github.com/skotz/cbl-js/issues/15">Question #15</a>.
+    </div>
+    <div class="main">
+        <div id="debugPreprocessed"></div>
+        <div id="debugSegmented"></div>
+        <div id="solution"></div>
+    </div>
+    <script>
+        var cbl = new CBL({
+            preprocess: function(img) {
+                img.binarize(32);
+                img.debugImage("debugPreprocessed");
+                img.blur(1);
+                img.debugImage("debugPreprocessed");
+                img.binarize(255);
+                img.debugImage("debugPreprocessed");
+                img.colorRegions(40, true);
+                img.debugImage("debugPreprocessed");
+            },
+            character_set: "abcdefghijklmnopqrstuvwxyz0123456789",
+            model_file: "cryptographp-model.txt",
+            blob_min_pixels: 40,
+            blob_max_pixels: 350,
+            pattern_width: 24,
+            pattern_height: 24,
+            pattern_maintain_ratio: true,
+            allow_console_log: true,
+            perceptive_colorspace: true,
+            blob_debug: "debugSegmented",
+            model_loaded: function() {
+                document.getElementById("aSolve").style.display = "inline-block";
+            }
+        });
+
+        cbl.train("Z48Y.jpg");
+        
+    </script>
+</body>
+</html>

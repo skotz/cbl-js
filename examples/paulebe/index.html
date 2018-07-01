@@ -1,0 +1,66 @@
+<!doctype html>
+<html>
+<head>
+    <title>Paul</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script type="text/javascript" src="/../../cbl.js"></script>
+    <style>
+        #debugPreprocessed img {
+            display: block;
+        }
+        .note {
+            margin: 0 0 15px 0;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="note">
+        Note: This is a segmentation-only example in response to <a href="https://github.com/skotz/cbl-js/issues/21">Question #21</a>.
+        It demonstrates conditional segmentation, convolutional filters, and fixed blob locations.
+    </div>
+    <div class="main">
+        <div id="debugPreprocessed"></div>
+        <div id="debugSegmented"></div>
+        <div id="solution"></div>
+    </div>
+    <script>
+        var cbl = new CBL({
+            preprocess: function(img) {
+                if (img.getPixel(0, 0).r == 255) {
+                    img.debugImage("debugPreprocessed");
+                    img.invert();
+                }
+                img.debugImage("debugPreprocessed");
+                img.convolute([ [0, 1, 0],
+                                [1, 2, 1],
+                                [0, 1, 0] ], 1/6);
+                img.debugImage("debugPreprocessed");
+                img.binarize(128);
+                img.debugImage("debugPreprocessed");
+                img.invert();
+                img.debugImage("debugPreprocessed");
+            },
+            fixed_blob_locations: [
+                { x1:  5, y1: 3, x2: 13, y2: 12 },
+                { x1: 15, y1: 3, x2: 23, y2: 12 },
+                { x1: 25, y1: 3, x2: 33, y2: 12 },
+                { x1: 35, y1: 3, x2: 43, y2: 12 },
+                { x1: 45, y1: 3, x2: 53, y2: 12 },
+                { x1: 55, y1: 3, x2: 63, y2: 12 }
+            ],
+            character_set: "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
+            pattern_width: 9,
+            pattern_height: 10,
+            allow_console_log: true,
+            blob_debug: "debugSegmented"
+        });
+
+        cbl.train("8OR9M9.png");
+        cbl.train("1NKM4J.png");
+        cbl.train("3WJ671.png");
+        cbl.train("730CR1.png");
+
+    </script>
+</body>
+</html>
