@@ -11,7 +11,7 @@
     <div id="debugPreprocessed"></div>
     <div id="debugSegmented"></div>
     <div class="main">
-        <a href="javascript: void(0)" id="solve" onclick="saveModel()" style="display: none">Download Model (After Training)</a>
+        <a href="javascript: void(0)" id="solve" onclick="saveModel()">Download Model (After Training)</a>
     </div>
     <script>
         var cbl = new CBL({
@@ -21,17 +21,13 @@
                 img.colorRegions(40, true, 1);
                 img.debugImage("debugPreprocessed");
             },
-            model_file: "freecap-model.txt",
             character_set: "abcdeghklmnopqrsuvwxyz",
             blob_debug: "debugSegmented",
             blob_min_pixels: 5,
             blob_max_pixels: 100,
             pattern_width: 10,
             pattern_height: 10,
-            perceptive_colorspace: true,
-            model_loaded: function() {
-                document.getElementById('solve').style.display = "block";
-            }
+            perceptive_colorspace: true
         });
 
         // Training set
