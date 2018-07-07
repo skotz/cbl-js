@@ -1,0 +1,121 @@
+<!doctype html>
+<html>
+<head>
+    <title>CBL-JS Segmentation Playground</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="../cbl.css" />
+    <script type="text/javascript" src="../cbl.js"></script>
+    <style>
+        * {
+            font-family: sans-serif;
+        }
+        #preprocess {
+            min-height: 300px;
+            min-width: 400px;
+        }
+        #debugPreprocessed {
+            background: #DDDDDD;
+            padding: 5px;
+        }
+        #debugSegmented {
+            background: #DDDDDD;
+            padding: 5px;
+            margin: 5px 0 0 0;
+        }
+        img {
+            margin: 0 5px 0 0;
+        }
+        .main img {
+            margin: 5px 0 0 0;
+        }
+        textarea {
+            font-family: monospace;
+        }
+        #imageUrl {
+            display: block;
+            margin: 0 0 5px 0;
+            min-width: 400px;
+        }
+    </style>
+</head>
+<body>
+    <div id="debugPreprocessed"></div>
+    <div id="debugSegmented"></div>
+    <div class="main">
+        <img id="captcha" src="../captchas/codeproject/43451803.gif" />
+        <br />
+        <input id="imageUrl" value="../captchas/codeproject/43451803.gif">
+        <textarea id="preprocess"></textarea>
+        <div id="errors"></div>
+        <br />
+        <a href="javascript: void(0)" id="run" onclick="run()">Run</a>
+    </div>
+    <script>
+        // Load saved script
+        var savedScript = JSON.parse(localStorage.getItem('cbl'))
+        if (savedScript == null) {
+            savedScript = "img.removeGray(20);\nimg.convolute([ [1, 2, 1], \n                [1, 3, 1], \n                [1, 2, 1] ], 1.0/13);\nimg.binarize(190);\nimg.colorRegions(45, true);";
+        }
+        document.getElementById('preprocess').value = savedScript;
+
+        var cbl;
+        var run = function() {
+            try {
+                // Save the script
+                localStorage.setItem('cbl', JSON.stringify(document.getElementById('preprocess').value));
+
+                document.getElementById('debugPreprocessed').innerHTML = "<div>Original</div>";
+                document.getElementById('debugSegmented').innerHTML = "<div>Segmented</div>";
+                document.getElementById('errors').innerHTML = "" ;
+                cbl = new CBL({
+                    preprocess: function(img) {
+                        try {
+                            var commands = document.getElementById('preprocess').value.split('img.');
+                            for (var i = 0; i < commands.length; i++) {
+                                if (commands[i].trim().length && !commands[i].includes('debugImage')) {
+                                    var command = 'img.' + commands[i];
+
+                                    console.log('CBL> img.debugImage("debugPreprocessed");');
+                                    img.debugImage("debugPreprocessed");
+
+                                    console.log('CBL> ' + command);
+                                    document.getElementById('debugPreprocessed').innerHTML += '<div>' + command + '</div>';
+                                    try {
+                                        eval(command);
+                                    }
+                                    catch (cex) {
+                                        console.warn('CBL> ' + command + ' failed!');
+                                        document.getElementById('errors').innerHTML = 'Failed to run: ' + command;
+                                    }
+                                }
+                            }
+                            img.debugImage("debugPreprocessed");
+                            console.log('CBL> img.debugImage("debugPreprocessed");');
+                        }
+                        catch (ex) {
+                            document.getElementById('errors').innerHTML = ex;
+                        }
+                    },
+                    blob_debug: "debugSegmented",
+                    character_set: "0123456789",
+                    blob_min_pixels: 40,
+                    blob_max_pixels: 350,
+                    pattern_width: 24,
+                    pattern_height: 24,
+                    pattern_maintain_ratio: true,
+                    perceptive_colorspace: true
+                });
+                cbl.solve("captcha");
+            }
+            catch (ex) {
+                document.getElementById('errors').innerHTML = ex;
+            }
+        };
+
+        // Load an image
+        document.getElementById('imageUrl').addEventListener('change', function() {
+            document.getElementById('captcha').src = document.getElementById('imageUrl').value;
+        });
+    </script>
+</body>
+</html>
