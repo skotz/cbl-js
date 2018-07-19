@@ -1,0 +1,70 @@
+<!doctype html>
+<html>
+<head>
+    <title>Elvincth</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script type="text/javascript" src="../../cbl.js"></script>
+    <link rel="stylesheet" type="text/css" href="../../cbl.css" />
+    <style>
+        #debugPreprocessed img {
+            display: block;
+        }
+        .note {
+            margin: 0 0 15px 0;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="note">
+        Note: This is a segmentation-only example in response to <a href="https://github.com/skotz/cbl-js/issues/23">Question #23</a>.
+    </div>
+    <div class="main">
+        <div id="debugPreprocessed"></div>
+        <div id="debugSegmented"></div>
+        <div id="solution"></div>
+    </div>
+    <script>
+        var cbl = new CBL({
+            preprocess: function(img) {
+                img.debugImage("debugPreprocessed");
+                img.binarize(220);
+                img.debugImage("debugPreprocessed");
+                img.convolute([ [1, 0, 1],
+                                [0, 1, 0],
+                                [1, 0, 1] ], 1/3);
+                img.debugImage("debugPreprocessed");
+                img.blur();
+                img.debugImage("debugPreprocessed");
+                img.binarize(200);
+                img.debugImage("debugPreprocessed");
+                img.colorRegions(40, true);
+                img.debugImage("debugPreprocessed");
+            },
+            character_set: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789",
+            blob_min_pixels: 50,
+            blob_max_pixels: 500,
+            pattern_width: 20,
+            pattern_height: 20,
+            allow_console_log: true,
+            blob_debug: "debugSegmented"
+        });
+
+        cbl.train("748B.jpg");
+        cbl.train("D1FB.png");
+        cbl.train("GW8K.jpg");
+        cbl.train("KM1j.jpg");
+        cbl.train("KQ5y.png");
+        cbl.train("nW2y.jpg");
+
+		/*
+		After training, don't forget to manually condense and save the model using the browser console:
+		cbl.condenseModel();
+		cbl.sortModel();
+		cbl.visualizeModel('debugSegmented');
+		cbl.saveModel();
+		*/
+		
+    </script>
+</body>
+</html>
