@@ -1,0 +1,68 @@
+<!doctype html>
+<html>
+<head>
+    <title>stakkitupp</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script type="text/javascript" src="/../../cbl.js"></script>
+    <style>
+        #debugPreprocessed img {
+            display: block;
+        }
+        .note {
+            margin: 0 0 15px 0;
+            font-weight: bold;
+        }
+        img {
+            margin: 5px 5px 0 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="note">
+        Example in response to <a href="https://github.com/skotz/cbl-js/issues/25">Question #25</a>.
+        It demonstrates solving systems that always have the same number of characters.
+    </div>
+    <div class="main">
+        <div id="debugPreprocessed"></div>
+        <div id="debugSegmented"></div>
+        <div id="solution"></div>
+        <div id="visualizeModel"></div>
+    </div>
+    <script>
+        var cbl = new CBL({
+            preprocess: function(img) {
+                img.debugImage("debugPreprocessed");
+                img.binarize(190);
+                img.debugImage("debugPreprocessed");
+                img.colorRegions(50, false, 1);
+                img.debugImage("debugPreprocessed");
+            },
+            character_set: "0123456789",
+            exact_characters: 4,
+            pattern_width: 16,
+            pattern_height: 16,
+            blob_min_pixels: 10,
+            blob_max_pixels: 200,
+            allow_console_log: true,
+            blob_console_debug: true,
+            blob_debug: "debugSegmented"
+        });
+
+        cbl.train("2636.png");
+        cbl.train("3673.png");
+        cbl.train("3864.png");
+        cbl.train("4646.png");
+        cbl.train("8202.png");
+        cbl.train("8210.png");
+        cbl.train("8775.png");
+        cbl.train("9055.png");
+
+        var saveModel = function() {
+            cbl.condenseModel();
+            cbl.sortModel();
+            cbl.visualizeModel("visualizeModel");
+            cbl.saveModel();
+        }
+    </script>
+</body>
+</html>
