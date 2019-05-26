@@ -860,7 +860,8 @@ var CBL = function (options) {
                                 splitSection = obj.histogramRotate(splitSection);
                             }
 
-                            blobs.push(splitSection);
+                            // Must insert into the same location to preserve order
+                            blobs.splice(largestIndex + split, 0, splitSection);
                         }
 
                         blobs.splice(largestIndex, 1);
