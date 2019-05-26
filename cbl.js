@@ -26,7 +26,8 @@ var CBL = function (options) {
         allow_console_warn: true,
         perceptive_colorspace: false,
         character_set: "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
-        fixed_blob_locations: [ ] // Expected format: [ { x1: 0, y1: 0, x2: 0, y2: 0 }, ... ]
+        fixed_blob_locations: [ ], // Expected format: [ { x1: 0, y1: 0, x2: 0, y2: 0 }, ... ]
+        exact_characters: -1
     };
 
     options = options || {};
@@ -778,6 +779,8 @@ var CBL = function (options) {
                         temp.getContext('2d').putImageData(blobContext, -leftmost, -topmost, leftmost, topmost, temp.width, temp.height);
                         blob.width = segmentWidth;
                         blob.height = segmentHeight;
+                        blob.orig_width = temp.width;
+                        blob.orig_image = temp;
                         if (options.pattern_maintain_ratio) {
                             var dWidth = temp.width;
                             var dHeight = temp.height;
@@ -801,17 +804,98 @@ var CBL = function (options) {
                         }
 
                         blobs.push(blob);
+                    }
+                }
 
-                        // Debugging help
-                        if (typeof debugElement !== 'undefined' && debugElement.length) {
-                            if (options.blob_console_debug) {
-                                log("Blob size = " + pixels);
+                // Make sure we have exactly N blobs if we know there are N characters
+                if (options.exact_characters > 0) {
+                    // Split the largest blob into two
+                    while (blobs.length < options.exact_characters) {
+                        var largestIndex = 0;
+                        var largest = blobs[0].orig_width;
+                        for (var i = 1; i < blobs.length; i++) {
+                            if (blobs[i].orig_width > largest) {
+                                largest = blobs[i].orig_width;
+                                largestIndex = i;
                             }
-                            var test = document.createElement("img");
-                            test.src = blob.toDataURL();
-                            // test.border = 1;
-                            document.getElementById(debugElement).appendChild(test);
                         }
+
+                        for (var split = 1; split <= 2; split ++) {
+                            var splitSection = cloneCanvas(blobs[largestIndex].orig_image);
+                            var blobContext = splitSection.getContext('2d').getImageData(0, 0, splitSection.width, splitSection.height);
+
+                            leftmost = split == 1 ? 0 : splitSection.width / 2;
+                            rightmost = split == 1 ? splitSection.width / 2 : splitSection.width;
+                            topmost = 0;
+                            bottommost = splitSection.height;
+
+                            // Split the largest image
+                            var temp = document.createElement('canvas');
+                            temp.width = rightmost - leftmost + 1;
+                            temp.height = bottommost - topmost + 1;
+                            temp.getContext('2d').putImageData(blobContext, -leftmost, -topmost, leftmost, topmost, temp.width, temp.height);
+                            splitSection.width = segmentWidth;
+                            splitSection.height = segmentHeight;
+                            splitSection.orig_width = temp.width;
+                            splitSection.orig_image = temp;
+                            if (options.pattern_maintain_ratio) {
+                                var dWidth = temp.width;
+                                var dHeight = temp.height;
+                                if (dWidth / segmentWidth > dHeight / segmentHeight) {
+                                    // Scale width
+                                    splitSection.getContext('2d').drawImage(temp, 0, 0, segmentWidth, dHeight * (segmentWidth / dWidth));
+                                }
+                                else {
+                                    // Scale height
+                                    splitSection.getContext('2d').drawImage(temp, 0, 0, dWidth * (segmentHeight / dHeight), segmentHeight);
+                                }
+                            }
+                            else {
+                                // Stretch the image
+                                splitSection.getContext('2d').drawImage(temp, 0, 0, segmentWidth, segmentHeight);
+                            }
+
+                            // Rotate the blobs using a histogram to minimize the width of non-white pixels
+                            if (options.pattern_auto_rotate) {
+                                splitSection = obj.histogramRotate(splitSection);
+                            }
+
+                            blobs.push(splitSection);
+                        }
+
+                        blobs.splice(largestIndex, 1);
+
+                        if (options.blob_console_debug) {
+                            log("Large blob divided");
+                        }
+                    }
+                    // Remove the smallest blobs
+                    while (blobs.length > options.exact_characters) {
+                        var smallestIndex = 0;
+                        var smallest = blobs[0].orig_width;
+                        for (var i = 1; i < blobs.length; i++) {
+                            if (blobs[i].orig_width < smallest) {
+                                smallest = blobs[i].orig_width;
+                                smallestIndex = i;
+                            }
+                        }
+                        blobs.splice(smallestIndex, 1);
+                        if (options.blob_console_debug) {
+                            log("Small blob removed");
+                        }
+                    }
+                }
+
+                // Debugging help
+                if (typeof debugElement !== 'undefined' && debugElement.length) {
+                    for (var i = 0; i < blobs.length; i++) {
+                        if (options.blob_console_debug) {
+                            log("Blob size = " + pixels);
+                        }
+                        var test = document.createElement("img");
+                        test.src = blobs[i].toDataURL();
+                        // test.border = 1;
+                        document.getElementById(debugElement).appendChild(test);
                     }
                 }
 
@@ -931,6 +1015,16 @@ var CBL = function (options) {
             }
         }
         return pattern.join('.');
+    };
+
+    // Clone a canvas object
+    var cloneCanvas = function (oldCanvas) {
+        var newCanvas = document.createElement('canvas');
+        var context = newCanvas.getContext('2d');
+        newCanvas.width = oldCanvas.width;
+        newCanvas.height = oldCanvas.height;
+        context.drawImage(oldCanvas, 0, 0);
+        return newCanvas;
     };
 
     // Get a value indicating how different two patterns are using the root mean square distance formula
