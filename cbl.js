@@ -773,7 +773,7 @@ var CBL = function (options) {
                     }
 
                     // Only save blobs of a certain size
-                    if (pixels >= minPixels && pixels <= maxPixels && rightmost - leftmost >= options.blob_min_width && bottommost - topmost > options.blob_min_height) {
+                    if (pixels >= minPixels && pixels <= maxPixels && rightmost - leftmost >= options.blob_min_width && bottommost - topmost >= options.blob_min_height) {
                         // Scale, crop, and resize blobs
                         var temp = document.createElement('canvas');
                         temp.width = rightmost - leftmost + 1;
@@ -826,10 +826,31 @@ var CBL = function (options) {
                             var splitSection = cloneCanvas(blobs[largestIndex].orig_image);
                             var blobContext = splitSection.getContext('2d').getImageData(0, 0, splitSection.width, splitSection.height);
 
-                            leftmost = split == 1 ? 0 : splitSection.width / 2;
-                            rightmost = split == 1 ? splitSection.width / 2 : splitSection.width;
+
+                            leftmost = Math.floor(split == 1 ? 0 : splitSection.width / 2);
+                            rightmost = Math.floor(split == 1 ? splitSection.width / 2 : splitSection.width);
                             topmost = 0;
                             bottommost = splitSection.height;
+
+                            // Find the highest pixel that's not the background color
+                            for (var fpy = topmost; fpy < bottommost && topmost == 0; fpy++) {
+                                for (var fpx = leftmost; fpx < rightmost && topmost == 0; fpx++) {
+                                    var fpix = getPixel(blobContext, fpx, fpy);
+                                    if (fpix.r != 255 || fpix.g != 255 || fpix.b != 255) {
+                                        topmost = fpy;
+                                    }
+                                }
+                            }
+                            // Find the lowest pixel that's not the background color
+                            for (var fpy = bottommost - 1; fpy > topmost && bottommost == splitSection.height; fpy--) {
+                                for (var fpx = leftmost; fpx < rightmost && bottommost == splitSection.height; fpx++) {
+                                    var fpix = getPixel(blobContext, fpx, fpy);
+                                    if (fpix.r != 255 || fpix.g != 255 || fpix.b != 255) {
+                                        bottommost = fpy;
+                                        console.error(fpx + "x" + fpy)
+                                    }
+                                }
+                            }
 
                             // Split the largest image
                             var temp = document.createElement('canvas');
@@ -1187,6 +1208,12 @@ var CBL = function (options) {
         while ((g = Math.round(Math.random() * 200) + 55) == r);
         while ((b = Math.round(Math.random() * 200) + 55) == r || b == g);
         return toColor(r, g, b);
+    };
+
+    var getPixel = function (image, x, y) {
+        var i = x * 4 + y * 4 * image.width;
+        var pixel = { r: image.data[i + 0], g: image.data[i + 1], b: image.data[i + 2] };
+        return pixel;
     };
 
     var patternElementID = "cbl-pattern";
