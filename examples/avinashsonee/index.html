@@ -1,0 +1,68 @@
+<!doctype html>
+<html>
+<head>
+    <title>avinashsonee</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script type="text/javascript" src="/../../cbl.js"></script>
+    <style>
+        #debugPreprocessed img {
+            display: block;
+        }
+        .note {
+            margin: 0 0 15px 0;
+            font-weight: bold;
+        }
+        img {
+            margin: 5px 5px 0 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="note">
+        Example in response to <a href="https://github.com/skotz/cbl-js/issues/34">Question #34</a>.
+    </div>
+    <div class="main">
+        <div id="debugPreprocessed"></div>
+        <div id="debugSegmented"></div>
+        <div id="solution"></div>
+        <div id="visualizeModel"></div>
+    </div>
+    <script>
+        var cbl = new CBL({
+            preprocess: function(img) {
+                img.cropRelative(2, 2, 2, 2);
+                img.debugImage("debugPreprocessed");
+                img.binarize(120);
+                img.debugImage("debugPreprocessed");
+                img.blur();
+                img.debugImage("debugPreprocessed");
+                img.binarize(50);
+                img.debugImage("debugPreprocessed");
+                img.colorRegions(50, true, 1);
+                img.debugImage("debugPreprocessed");
+            },
+            character_set: "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
+            pattern_width: 25,
+            pattern_height: 25,
+            blob_min_pixels: 10,
+            blob_max_pixels: 250,
+            allow_console_log: true,
+            blob_console_debug: true,
+            perceptive_colorspace: true,
+            blob_debug: "debugSegmented"
+        });
+
+        cbl.train("6HYFHM.png");
+        cbl.train("76US7T.png");
+        cbl.train("D9QQ8U.png");
+        cbl.train("H6E7V2.png");
+
+        var saveModel = function() {
+            // cbl.condenseModel(); // don't do this since the letters vary in rotation
+            cbl.sortModel();
+            cbl.visualizeModel("visualizeModel");
+            cbl.saveModel();
+        }
+    </script>
+</body>
+</html>
