@@ -15,6 +15,8 @@ var CBL = function (options) {
         training_complete: function() { },
         blob_min_pixels: 1,
         blob_max_pixels: 99999,
+        blob_min_width: 1,
+        blob_min_height: 1,
         pattern_width: 20,
         pattern_height: 20,
         pattern_maintain_ratio: false,
@@ -771,7 +773,7 @@ var CBL = function (options) {
                     }
 
                     // Only save blobs of a certain size
-                    if (pixels >= minPixels && pixels <= maxPixels) {
+                    if (pixels >= minPixels && pixels <= maxPixels && rightmost - leftmost >= options.blob_min_width && bottommost - topmost > options.blob_min_height) {
                         // Scale, crop, and resize blobs
                         var temp = document.createElement('canvas');
                         temp.width = rightmost - leftmost + 1;
