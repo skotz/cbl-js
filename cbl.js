@@ -2,7 +2,7 @@
  * CBL-js
  * CAPTCHA Breaking Library in JavaScript
  * https://github.com/skotz/cbl-js
- * Copyright (c) 2015-2018 Scott Clayton
+ * Copyright (c) 2015-2019 Scott Clayton
  */
 
 var CBL = function (options) {
@@ -1108,11 +1108,6 @@ var CBL = function (options) {
             g: data[i + 1],
             b: data[i + 2]
         };
-    };
-
-    // Measure the difference between two colors in the RGB colorspace
-    var colorCompareMaxRGB = function (color1, color2) {
-        return Math.max(Math.abs(color1.r - color2.r), Math.abs(color1.g - color2.g), Math.abs(color1.g - color2.g));
     };
 
     // Measure the difference between two colors in the RGB colorspace using Root Mean Square
