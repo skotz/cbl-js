@@ -1,0 +1,72 @@
+<!doctype html>
+<html>
+<head>
+    <title>mmoohammed</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script type="text/javascript" src="/../../cbl.js"></script>
+    <style>
+        #debugPreprocessed img {
+            display: block;
+        }
+        .note {
+            margin: 0 0 15px 0;
+            font-weight: bold;
+        }
+        img {
+            margin: 5px 5px 0 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="note">
+        Example in response to <a href="https://github.com/skotz/cbl-js/issues/39">Question #39</a>.
+    </div>
+    <div class="main">
+        <div id="debugPreprocessed"></div>
+        <div id="debugSegmented"></div>
+        <div id="solution"></div>
+        <div id="visualizeModel"></div>
+    </div>
+    <script>
+        var cbl = new CBL({
+            preprocess: function(img) {
+                img.debugImage("debugPreprocessed");
+                img.binarize(150);
+                img.debugImage("debugPreprocessed");
+                img.cropRelative(35, 2, 35, 2);
+                img.debugImage("debugPreprocessed");
+            },
+            character_set: "0123456789",
+            exact_characters: 6,
+            exact_characters_width: 17,
+            exact_characters_play: 10,
+            blob_min_pixels: 20,
+            blob_max_pixels: 1000000,
+            pattern_width: 40,
+            pattern_height: 30,
+            allow_console_log: true,
+            blob_console_debug: true,
+            perceptive_colorspace: true,
+            blob_debug: "debugSegmented"
+        });
+
+        cbl.train("018799.jpg");
+        cbl.train("215374.jpg");
+        cbl.train("220939.jpg");
+        cbl.train("307958.jpg");
+        cbl.train("314370.png");
+        cbl.train("326249.png");
+        cbl.train("401401.jpg");
+        cbl.train("619174.png");
+        cbl.train("629816.jpg");
+        cbl.train("926280.png");
+
+        var saveModel = function() {
+            cbl.condenseModel();
+            cbl.sortModel();
+            cbl.visualizeModel("visualizeModel");
+            cbl.saveModel();
+        }
+    </script>
+</body>
+</html>

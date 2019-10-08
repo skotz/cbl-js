@@ -714,6 +714,7 @@ var CBL = function (options) {
 
                 var image = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
                 var toColor = function (d, i) { return d[i] * 255 * 255 + d[i + 1] * 256 + d[i + 2]; };
+                var white = toColor([ 255, 255, 255 ], 0);
 
                 // Find distinct colors
                 var colors = new Array();
@@ -721,7 +722,7 @@ var CBL = function (options) {
                     for (var y = 0; y < image.height; y++) {
                         var i = x * 4 + y * 4 * image.width;
                         var rgb = toColor(image.data, i);
-                        if (!arrayContains(colors, rgb)) {
+                        if (!arrayContains(colors, rgb) && rgb != white) {
                             colors.push(rgb);
                         }
                     }
@@ -829,6 +830,7 @@ var CBL = function (options) {
                         if (options.exact_characters_width > 0) {
                             resultingBlobs = Math.ceil(largest / options.exact_characters_width);
                             resultingBlobs = Math.max(resultingBlobs, 2);
+                            resultingBlobs = Math.min(resultingBlobs, options.exact_characters - blobs.length + 1);
                         }
 
                         for (var split = 1; split <= resultingBlobs; split ++) {
@@ -858,7 +860,6 @@ var CBL = function (options) {
                                     if (currentLeft > bestLeft) {
                                         bestLeftX = fpx;
                                         bestLeft = currentLeft;
-                                        console.log(bestLeft + " at " + bestLeftX)
                                     }
                                 }
                                 leftmost = bestLeftX;
@@ -877,7 +878,6 @@ var CBL = function (options) {
                                     if (currentRight > bestRight) {
                                         bestRightX = fpx;
                                         bestRight = currentRight;
-                                        console.log(bestRight + " at " + bestRightX)
                                     }
                                 }
                                 rightmost = bestRightX;
