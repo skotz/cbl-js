@@ -29,7 +29,9 @@ var CBL = function (options) {
         perceptive_colorspace: false,
         character_set: "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
         fixed_blob_locations: [ ], // Expected format: [ { x1: 0, y1: 0, x2: 0, y2: 0 }, ... ]
-        exact_characters: -1
+        exact_characters: -1,
+        exact_characters_width: -1, // Used to guess how many characters there are in a large blob
+        exact_characters_play: -1 // Used to find a good vertical split point when splitting by an exact number of characters
     };
 
     options = options || {};
@@ -822,15 +824,64 @@ var CBL = function (options) {
                             }
                         }
 
-                        for (var split = 1; split <= 2; split ++) {
+                        // How many blobs should this one large blob be split into?
+                        var resultingBlobs = 2;
+                        if (options.exact_characters_width > 0) {
+                            resultingBlobs = Math.ceil(largest / options.exact_characters_width);
+                            resultingBlobs = Math.max(resultingBlobs, 2);
+                        }
+
+                        for (var split = 1; split <= resultingBlobs; split ++) {
                             var splitSection = cloneCanvas(blobs[largestIndex].orig_image);
                             var blobContext = splitSection.getContext('2d').getImageData(0, 0, splitSection.width, splitSection.height);
 
+                            var slice = splitSection.width / resultingBlobs;
 
-                            leftmost = Math.floor(split == 1 ? 0 : splitSection.width / 2);
-                            rightmost = Math.floor(split == 1 ? splitSection.width / 2 : splitSection.width);
+                            leftmost = Math.floor(slice * (split - 1));
+                            rightmost = Math.floor(slice * split);
                             topmost = 0;
                             bottommost = splitSection.height;
+
+                            // How far to look for the best vertical split point
+                            if (options.exact_characters_play > 0) {
+                                // Find the best left cut
+                                var bestLeft = 0;
+                                var bestLeftX = 0;
+                                for (var fpx = leftmost - options.exact_characters_play; fpx < leftmost + options.exact_characters_play; fpx++) {
+                                    var currentLeft = 0;
+                                    for (var fpy = topmost; fpy < bottommost; fpy++) {
+                                        var fpix = getPixel(blobContext, fpx, fpy);
+                                        if (fpix.r == 255 && fpix.g == 255 && fpix.b == 255) {
+                                            currentLeft++;
+                                        }
+                                    }
+                                    if (currentLeft > bestLeft) {
+                                        bestLeftX = fpx;
+                                        bestLeft = currentLeft;
+                                        console.log(bestLeft + " at " + bestLeftX)
+                                    }
+                                }
+                                leftmost = bestLeftX;
+
+                                // Find the best right cut
+                                var bestRight = 0;
+                                var bestRightX = 0;
+                                for (var fpx = rightmost + options.exact_characters_play; fpx > rightmost - options.exact_characters_play; fpx--) {
+                                    var currentRight = 0;
+                                    for (var fpy = topmost; fpy < bottommost; fpy++) {
+                                        var fpix = getPixel(blobContext, fpx, fpy);
+                                        if (fpix.r == 255 && fpix.g == 255 && fpix.b == 255) {
+                                            currentRight++;
+                                        }
+                                    }
+                                    if (currentRight > bestRight) {
+                                        bestRightX = fpx;
+                                        bestRight = currentRight;
+                                        console.log(bestRight + " at " + bestRightX)
+                                    }
+                                }
+                                rightmost = bestRightX;
+                            }
 
                             // Find the highest pixel that's not the background color
                             for (var fpy = topmost; fpy < bottommost && topmost == 0; fpy++) {
@@ -847,7 +898,6 @@ var CBL = function (options) {
                                     var fpix = getPixel(blobContext, fpx, fpy);
                                     if (fpix.r != 255 || fpix.g != 255 || fpix.b != 255) {
                                         bottommost = fpy;
-                                        console.error(fpx + "x" + fpy)
                                     }
                                 }
                             }
