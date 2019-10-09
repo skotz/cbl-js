@@ -1,0 +1,87 @@
+<!doctype html>
+<html>
+<head>
+    <title>subscan</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script type="text/javascript" src="/../../cbl.js"></script>
+    <style>
+        #debugPreprocessed img {
+            display: block;
+        }
+        #debugSegmented img {
+            border: 1px dotted #AAAAAA;
+        }
+        .note {
+            margin: 0 0 15px 0;
+            font-weight: bold;
+        }
+        img {
+            margin: 5px 5px 0 0;
+        }
+
+    </style>
+</head>
+<body>
+    <div class="note">
+        Example of manual preprocessing subscan solvers.
+    </div>
+    <div class="main">
+        <div id="debugPreprocessed"></div>
+        <div id="debugSegmented"></div>
+        <div id="solution"></div>
+        <div id="visualizeModel"></div>
+    </div>
+    <script>
+        var cbl = new CBL({
+            preprocess: function(img) {
+                img.debugImage("debugPreprocessed");
+                img.binarize(150);
+                img.debugImage("debugPreprocessed");
+            },
+            solve_method: "scan",
+            solve_search_pixel_factor: 0.70,
+            character_set: "0123456789",
+            exact_characters: 6,
+            exact_characters_width: 17,
+            exact_characters_play: 10,
+            blob_min_pixels: 20,
+            blob_max_pixels: 1000000,
+            pattern_width: 32,
+            pattern_height: 32,
+            allow_console_log: true,
+            blob_console_debug: true,
+            perceptive_colorspace: true,
+            blob_debug: "debugSegmented"
+        });
+
+        //cbl.extract("018799.jpg", "018799", 
+        //    [ { x1: 43, y1: 18, x2: 43 + 18, y2: 18 + 27 }, 
+        //      { x1: 0, y1: 0, x2: 0, y2: 0 }, 
+        //      { x1: 0, y1: 0, x2: 0, y2: 0 }, 
+        //      { x1: 0, y1: 0, x2: 0, y2: 0 }, 
+        //      { x1: 0, y1: 0, x2: 0, y2: 0 }, 
+        //      { x1: 0, y1: 0, x2: 0, y2: 0 } ]);
+            
+        cbl.extract("x215374.png", "215374");
+        
+        cbl.solve("215374.jpg");
+           
+        //cbl.extract("x215374.png", "215374");
+        //cbl.extract("x220939.png", "220939");
+        //cbl.extract("x307958.png", "307958");
+        //cbl.extract("x314370.png", "314370");
+        //cbl.extract("x326249.png", "326249");
+        //cbl.extract("x401401.png", "401401");
+        //cbl.extract("x619174.png", "619174");
+        //cbl.extract("x629816.png", "629816");
+        //cbl.extract("x926280.png", "926280");
+
+        var saveModel = function() {
+            cbl.condenseModel();
+            cbl.sortModel();
+            cbl.visualizeModel("visualizeModel");
+            cbl.saveModel();
+        }
+    </script>
+</body>
+</html>

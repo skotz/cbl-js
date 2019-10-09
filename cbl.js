@@ -31,7 +31,9 @@ var CBL = function (options) {
         fixed_blob_locations: [ ], // Expected format: [ { x1: 0, y1: 0, x2: 0, y2: 0 }, ... ]
         exact_characters: -1,
         exact_characters_width: -1, // Used to guess how many characters there are in a large blob
-        exact_characters_play: -1 // Used to find a good vertical split point when splitting by an exact number of characters
+        exact_characters_play: -1, // Used to find a good vertical split point when splitting by an exact number of characters,
+        solve_method: "bvs", // Options are "bvs" for bitmap vector subtraction which uses the train method, or "scan" which requires more advanced manual preprocessing and the extract method (see examples)
+        solve_search_pixel_factor: 0.6 // Percentage of pixels that must match in a search solver
     };
 
     options = options || {};
@@ -49,7 +51,13 @@ var CBL = function (options) {
 
         // Load an image and attempt to solve it based on trained model
         solve : function (el) {
-            return obj.train(el, true);
+            if (options.solve_method == "bvs") {
+                return obj.train(el, true);
+            } else if (options.solve_method == "scan") {
+                return obj.extract(el, "", true);
+            } else {
+                log("Invalid solve method specified.");
+            }
         },
 
         done : function (resultHandler) {
@@ -63,6 +71,9 @@ var CBL = function (options) {
         train : function (el, solving) {
             if (typeof solving === 'undefined') {
                 solving = false;
+            }
+            if (options.solve_method != "bvs") {
+                log("The train method only works with the \"bvs\" solve_method.");
             }
             addQueue(function() {
                 var image;
@@ -149,6 +160,86 @@ var CBL = function (options) {
             return this;
         },
 
+        // Instead of segmenting every image, have a human specify a set of images and the exact coordinates of every character in that image
+        extract: function (el, solution, solving) {
+            if (typeof solving === 'undefined') {
+                solving = false;
+            }
+            if (typeof solution === 'undefined' && !solving) {
+                warn("Solution must be provided.");
+                return;
+            }
+            if (options.solve_method != "scan") {
+                log("The extract method only works with the \"scan\" solve_method.");
+            }
+            addQueue(function() {
+                var image;
+                var needSetSrc = false;
+                if (document.getElementById(el) != null) {
+                    image = document.getElementById(el);
+                } else {
+                    image = document.createElement("img");
+                    needSetSrc = true;
+                }
+                var afterLoad = function(solution) {
+                    var canvas = document.createElement('canvas');
+                    canvas.width = image.width;
+                    canvas.height = image.height;
+                    canvas.getContext('2d').drawImage(image, 0, 0);
+
+                    var cblImage = new cbl_image(canvas);
+
+                    if (solving) {
+                        // Only run user-specified image preprocessing if solving
+                        options.preprocess(cblImage);
+                    }
+                    else {
+                        // Extract patterns
+                        blobs = cblImage.segmentBlobs(options.blob_min_pixels,
+                                                      options.blob_max_pixels,
+                                                      options.pattern_width,
+                                                      options.pattern_height,
+                                                      options.blob_debug,
+                                                      true);
+                    }
+
+                    // FOR EXTRACTING
+                    if (!solving) {
+                        for (var i = 0; i < blobs.length; i++) {
+                            model.push({
+                                pattern: blobToPattern(blobs[i]),
+                                solution: solution[i],
+                                width: blobs[i].width,
+                                height: blobs[i].height
+                            });
+                            log("Added \"" + solution[i] + "\" pattern to model!");
+                        }
+                    }
+
+                    // FOR SOLVING
+                    // Solve an image buy comparing each blob against our model of learned patterns
+                    else {
+                        solution = findLocations(cblImage);
+                        log("Solution = " + solution);
+                    }
+
+                    doneResult = solution;
+                    runQueue();
+                };
+                if (image.complete && !needSetSrc) {
+                    afterLoad(solution);
+                } else {
+                    image.onload = function () { afterLoad(solution) };
+
+                    // Set the source AFTER setting the onload
+                    if (needSetSrc) {
+                        image.src = el;
+                    }
+                }
+            });
+            return this;
+        },
+
         // Load the next pattern pending human classification
         loadNextPattern: function() {
             var nextPattern = pendingPatterns.pop();
@@ -199,11 +290,24 @@ var CBL = function (options) {
             for (var i = 0; i < patterns.length; i++) {
                 var parts = patterns[i].split("=");
                 if (parts.length == 2) {
+                    // Regular models
                     var p = parts[1];
                     var s = parts[0];
                     model.push({
                         pattern: p,
                         solution: s
+                    });
+                } else if (parts.length == 4) {
+                    // New extraction models
+                    var s = parts[0];
+                    var p = parts[1];
+                    var w = parts[2];
+                    var h = parts[3];
+                    model.push({
+                        pattern: p,
+                        solution: s,
+                        width: w,
+                        height: h
                     });
                 }
             }
@@ -237,7 +341,7 @@ var CBL = function (options) {
         serializeModel: function () {
             var str = "";
             for (var i = 0; i < model.length; i++) {
-                str += "[" + model[i].solution + "=" + model[i].pattern + "]";
+                str += "[" + model[i].solution + "=" + model[i].pattern + "=" + model[i].width + "=" + model[i].height + "]";
             }
             str = LZString.compressToBase64(str);
             return str;
@@ -630,7 +734,7 @@ var CBL = function (options) {
             \***********************************************/
 
             // Cut the image into separate, pre-defined sections
-            segmentBlocks : function (segmentWidth, segmentHeight, segmentLocations, debugElement) {
+            segmentBlocks : function (segmentWidth, segmentHeight, segmentLocations, debugElement, doNotScale) {
                 if (typeof segmentWidth === 'undefined') {
                     segmentWidth = 20;
                 }
@@ -639,6 +743,9 @@ var CBL = function (options) {
                 }
                 if (typeof segmentLocations === 'undefined') {
                     segmentLocations = [ ];
+                }
+                if (typeof doNotScale === 'undefined') {
+                    doNotScale = false;
                 }
 
                 var image = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
@@ -664,7 +771,10 @@ var CBL = function (options) {
                     temp.getContext('2d').putImageData(image, -leftmost, -topmost, leftmost, topmost, temp.width, temp.height);
                     blob.width = segmentWidth;
                     blob.height = segmentHeight;
-                    if (options.pattern_maintain_ratio) {
+                    if (doNotScale) {
+                        blob = temp;
+                    }
+                    else if (options.pattern_maintain_ratio) {
                         var dWidth = temp.width;
                         var dHeight = temp.height;
                         if (dWidth / segmentWidth > dHeight / segmentHeight) {
@@ -698,7 +808,7 @@ var CBL = function (options) {
             },
 
             // Cut the image into separate blobs where each distinct color is a blob
-            segmentBlobs : function (minPixels, maxPixels, segmentWidth, segmentHeight, debugElement) {
+            segmentBlobs : function (minPixels, maxPixels, segmentWidth, segmentHeight, debugElement, doNotScale) {
                 if (typeof minPixels === 'undefined') {
                     minPixels = 1;
                 }
@@ -710,6 +820,9 @@ var CBL = function (options) {
                 }
                 if (typeof segmentHeight === 'undefined') {
                     segmentHeight = 20;
+                }
+                if (typeof doNotScale === 'undefined') {
+                    doNotScale = false;
                 }
 
                 var image = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
@@ -786,7 +899,10 @@ var CBL = function (options) {
                         blob.height = segmentHeight;
                         blob.orig_width = temp.width;
                         blob.orig_image = temp;
-                        if (options.pattern_maintain_ratio) {
+                        if (doNotScale) {
+                            blob = temp;
+                        }
+                        else if (options.pattern_maintain_ratio) {
                             var dWidth = temp.width;
                             var dHeight = temp.height;
                             if (dWidth / segmentWidth > dHeight / segmentHeight) {
@@ -1025,6 +1141,45 @@ var CBL = function (options) {
                     // document.getElementById("debugPreprocessed").appendChild(test2);
                 }
                 return best;
+            },
+            
+            getPatternLocations : function (pattern) {
+                var patternData = pattern.pattern.split('.');
+                var locations = [];
+                var image = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
+                for (var x = 0; x < image.width; x++) {
+                    for (var y = 0; y < image.height; y++) {
+                        // Get a score of how close this section of the image is to the given pattern
+                        var score = 0;
+                        if (x + pattern.width < image.width && y + pattern.height < image.height) {
+                            for (var px = 0; px < pattern.width; px++) {
+                                for (var py = 0; py < pattern.height; py++) {
+                                    var i = (x + px) * 4 + (y + py) * 4 * image.width;
+                                    var pixel = { r: image.data[i + 0], g: image.data[i + 1], b: image.data[i + 2] };
+                                    
+                                    if (patternData[px * pattern.height + py] < 128 && pixel.r < 128) {
+                                        score++;
+                                    } else if (patternData[px * pattern.height + py] > 128 && pixel.r > 128) {
+                                        score++;
+                                    }
+                                }
+                            }
+                        }
+                        score /= pattern.width * pattern.height;
+                        if (score >= options.solve_search_pixel_factor) {
+                            // Try not to log the same location too many times
+                            if (locations.length == 0 || locations[locations.length - 1].left < x - 5) {
+                                locations.push({
+                                    left: x,
+                                    score: score,
+                                    guess: pattern.solution
+                                });
+                            }
+                        }
+                    }
+                }
+                canvas.getContext('2d').putImageData(image, 0, 0);
+                return locations;
             }
         };
         return obj;
@@ -1069,6 +1224,40 @@ var CBL = function (options) {
             if (test < best) {
                 best = test;
                 solution = model[i].solution;
+            }
+        }
+        return solution;
+    };
+
+    // Search the image for our set of patterns
+    var findLocations = function (cblImage) {
+        var solution = "?";
+        var allLocations = [];
+        for (var i = 0; i < model.length; i++) {
+            var locations = cblImage.getPatternLocations(model[i]);
+            if (locations.length) {
+                for (var x = 0; x < locations.length; x++) {
+                    allLocations.push(locations[x]);
+                    log("Found \"" + model[i].solution + "\" at " + locations[x].left + " with " + (locations[x].score * 100).toFixed(2) + "% confidence");
+                }
+            }
+        }
+        
+        // Guess at the solution
+        if (allLocations.length) {
+            solution = "";
+            
+            if (options.exact_characters > 0 && allLocations.length > options.exact_characters) {
+                // Sort by score in the image and remove all but the top N scoring guesses
+                allLocations.sort(function(a, b) { return b.score - a.score; });
+                allLocations.length = options.exact_characters;
+            }
+            
+            // Sort by location in the image
+            allLocations.sort(function(a, b) { return a.left - b.left; });
+            
+            for (var x = 0; x < allLocations.length; x++) {
+                solution += allLocations[x].guess;
             }
         }
         return solution;
