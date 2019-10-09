@@ -1144,6 +1144,7 @@ var CBL = function (options) {
             },
             
             getPatternLocations : function (pattern) {
+                var debugMode = false;
                 var patternData = pattern.pattern.split('.');
                 var locations = [];
                 var image = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
@@ -1151,30 +1152,46 @@ var CBL = function (options) {
                     for (var y = 0; y < image.height; y++) {
                         // Get a score of how close this section of the image is to the given pattern
                         var score = 0;
+                        var patternMax = 0;
                         if (x + pattern.width < image.width && y + pattern.height < image.height) {
-                            for (var px = 0; px < pattern.width; px++) {
-                                for (var py = 0; py < pattern.height; py++) {
+                            var test1 = "\r\n";
+                            var test2 = "\r\n";
+                            for (var py = 0; py < pattern.height; py++) {
+                                for (var px = 0; px < pattern.width; px++) {
                                     var i = (x + px) * 4 + (y + py) * 4 * image.width;
                                     var pixel = { r: image.data[i + 0], g: image.data[i + 1], b: image.data[i + 2] };
                                     
-                                    if (patternData[px * pattern.height + py] < 128 && pixel.r < 128) {
-                                        score++;
-                                    } else if (patternData[px * pattern.height + py] > 128 && pixel.r > 128) {
-                                        score++;
+                                    if (patternData[px * pattern.height + py] < 128) {
+                                        patternMax++;
+                                        if (pixel.r < 128) {
+                                            score++;
+                                        }
+                                    }
+                                    if (debugMode) {
+                                        test1 += patternData[px * pattern.height + py] < 128 ? "X" : "-";
+                                        test2 += pixel.r < 128 ? "X" : "-";
                                     }
                                 }
+                                if (debugMode) {
+                                    test1 += "\r\n"
+                                    test2 += "\r\n"
+                                }
+                            }
+                            if (debugMode && score / patternMax >= 0.8) {
+                                console.log(test1);
+                                console.log(test2);
+                                console.log(score / patternMax);
+                                break;
+                                return [];
                             }
                         }
-                        score /= pattern.width * pattern.height;
+                        score /= patternMax;
                         if (score >= options.solve_search_pixel_factor) {
-                            // Try not to log the same location too many times
-                            if (locations.length == 0 || locations[locations.length - 1].left < x - 5) {
-                                locations.push({
-                                    left: x,
-                                    score: score,
-                                    guess: pattern.solution
-                                });
-                            }
+                            locations.push({
+                                left: x,
+                                score: score,
+                                guess: pattern.solution
+                            });
                         }
                     }
                 }
