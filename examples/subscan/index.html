@@ -40,7 +40,7 @@
             },
             character_set: "0123456789",
             solve_method: "scan",
-            solve_search_pixel_factor: 0.90,
+            solve_search_pixel_factor: 0.85,
             exact_characters: 6,
             allow_console_log: true,
             blob_console_debug: true,
@@ -55,11 +55,13 @@
         //cbl.extract("x314370.png", "314370");
         //cbl.extract("x326249.png", "326249");
         //cbl.extract("x401401.png", "401401");
-        //cbl.extract("x619174.png", "619174");
-        //cbl.extract("x629816.png", "629816");
+        cbl.extract("x619174.png", "619174");
+        cbl.extract("x629816.png", "629816");
         //cbl.extract("x926280.png", "926280");
         
         cbl.solve("215374.jpg");
+        cbl.solve("619174.png");
+        cbl.solve("629816.jpg");
 
         var saveModel = function() {
             cbl.condenseModel();

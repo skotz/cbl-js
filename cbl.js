@@ -1142,7 +1142,7 @@ var CBL = function (options) {
                 }
                 return best;
             },
-            
+
             getPatternLocations : function (pattern) {
                 var debugMode = false;
                 var patternData = pattern.pattern.split('.');
@@ -1160,7 +1160,7 @@ var CBL = function (options) {
                                 for (var px = 0; px < pattern.width; px++) {
                                     var i = (x + px) * 4 + (y + py) * 4 * image.width;
                                     var pixel = { r: image.data[i + 0], g: image.data[i + 1], b: image.data[i + 2] };
-                                    
+
                                     if (patternData[px * pattern.height + py] < 128) {
                                         patternMax++;
                                         if (pixel.r < 128) {
@@ -1255,24 +1255,24 @@ var CBL = function (options) {
             if (locations.length) {
                 for (var x = 0; x < locations.length; x++) {
                     allLocations.push(locations[x]);
-                    log("Found \"" + model[i].solution + "\" at " + locations[x].left + " with " + (locations[x].score * 100).toFixed(2) + "% confidence");
+                    // log("Found \"" + model[i].solution + "\" at " + locations[x].left + " with " + (locations[x].score * 100).toFixed(2) + "% confidence");
                 }
             }
         }
-        
+
         // Guess at the solution
         if (allLocations.length) {
             solution = "";
-            
+
             if (options.exact_characters > 0 && allLocations.length > options.exact_characters) {
                 // Sort by score in the image and remove all but the top N scoring guesses
                 allLocations.sort(function(a, b) { return b.score - a.score; });
                 allLocations.length = options.exact_characters;
             }
-            
+
             // Sort by location in the image
             allLocations.sort(function(a, b) { return a.left - b.left; });
-            
+
             for (var x = 0; x < allLocations.length; x++) {
                 solution += allLocations[x].guess;
             }
