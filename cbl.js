@@ -134,7 +134,7 @@ var CBL = function (options) {
                     }
 
                     // FOR SOLVING
-                    // Solve an image buy comparing each blob against our model of learned patterns
+                    // Solve an image by comparing each blob against our model of learned patterns
                     else {
                         for (var i = 0; i < blobs.length; i++) {
                             solution += findBestMatch(blobToPattern(blobs[i]));
