@@ -508,6 +508,25 @@ var CBL = function (options) {
                 return this;
             },
 
+            // Change all colors above a certain brightness to white
+            removeLight : function (brightness) {
+                var image = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
+                for (var x = 0; x < image.width; x++) {
+                    for (var y = 0; y < image.height; y++) {
+                        var i = x * 4 + y * 4 * image.width;
+                        var diff = Math.max(image.data[i], image.data[i + 1], image.data[i + 2]);
+                        if (diff > brightness) {
+                            image.data[i] = 255;
+                            image.data[i + 1] = 255;
+                            image.data[i + 2] = 255;
+                            image.data[i + 3] = 255;
+                        }
+                    }
+                }
+                canvas.getContext('2d').putImageData(image, 0, 0);
+                return this;
+            },
+
             // Convert the image to black and white given a grayshale threshold
             binarize : function (threshold) {
                 var image = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
