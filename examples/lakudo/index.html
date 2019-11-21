@@ -1,0 +1,75 @@
+<!doctype html>
+<html>
+<head>
+    <title>lakudo</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script type="text/javascript" src="/../../cbl.js"></script>
+    <style>
+        #debugPreprocessed img {
+            display: block;
+        }
+        .note {
+            margin: 0 0 15px 0;
+            font-weight: bold;
+        }
+        img {
+            margin: 5px 5px 0 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="note">
+        Example in response to <a href="https://github.com/skotz/cbl-js/issues/40">Question #40</a>.
+    </div>
+    <div class="main">
+        <div id="debugPreprocessed"></div>
+        <div id="debugSegmented"></div>
+        <div id="solution"></div>
+        <div id="visualizeModel"></div>
+    </div>
+    <div id="test" class="main">
+        <img id="captcha" src="1336.jpg" />
+        <br />
+        <input type="text" id="solution2">
+        <br />
+        <a href="javascript: void(0)" id="solve" onclick="solve()" style="display: none">Solve!</a>
+    </div>
+    <script>
+        var cbl = new CBL({
+            preprocess: function(img) {
+                img.binarize(100);
+                img.blur(1);
+                img.binarize(220);
+                img.colorRegions(40);            
+            },
+            /* Load the model we saved during training. */
+            model_file: "model.txt",
+            character_set: "0123456789",
+            blob_min_pixels: 40,
+            blob_max_pixels: 350,
+            pattern_width: 24,
+            pattern_height: 24,
+            pattern_maintain_ratio: true,
+            //perceptive_colorspace: true,
+            /* Define a method that fires immediately after successfully loading a saved model. */
+            model_loaded: function() {
+                // Don't enable the solve button until the model is loaded.
+                document.getElementById('solve').style.display = "block";
+                solve();
+            },
+            
+            allow_console_log: true,
+            blob_console_debug: true,
+            blob_debug: "debugSegmented"
+        });    
+    
+        var solve = function() {
+            // Using the saved model, attempt to find a solution to a specific image.
+            cbl.solve("captcha").done(function (solution) {
+                // Upon finding a solution, fill the solution textbox with the answer.
+                document.getElementById('solution2').value = solution;
+            });
+        }
+    </script>
+</body>
+</html>
