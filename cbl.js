@@ -1269,12 +1269,16 @@ var CBL = function (options) {
                                     var i = (x + px) * 4 + (y + py) * 4 * image.width;
                                     var pixel = { r: image.data[i + 0], g: image.data[i + 1], b: image.data[i + 2] };
 
+                                    // score += Math.pow(patternData[px * pattern.height + py] - pixel.r, 2);
+                                    // patternMax++;
+
                                     if (patternData[px * pattern.height + py] < 128) {
                                         patternMax++;
                                         if (pixel.r < 128) {
                                             score++;
                                         }
                                     }
+
                                     if (debugMode) {
                                         test1 += patternData[px * pattern.height + py] < 128 ? "X" : "-";
                                         test2 += pixel.r < 128 ? "X" : "-";
@@ -1294,6 +1298,7 @@ var CBL = function (options) {
                             }
                         }
                         score /= patternMax;
+                        // score = Math.sqrt(score);
                         if (score >= options.solve_search_pixel_factor) {
                             locations.push({
                                 left: x,
@@ -1363,7 +1368,7 @@ var CBL = function (options) {
             if (locations.length) {
                 for (var x = 0; x < locations.length; x++) {
                     allLocations.push(locations[x]);
-                    // log("Found \"" + model[i].solution + "\" at " + locations[x].left + " with " + (locations[x].score * 100).toFixed(2) + "% confidence");
+                    log("Found \"" + model[i].solution + "\" at " + locations[x].left + " with " + (locations[x].score * 100).toFixed(2) + "% confidence");
                 }
             }
         }
