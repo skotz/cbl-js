@@ -383,7 +383,7 @@ var CBL = function (options) {
                 for (var x = 0; x < model[m].width; x++) {
                     for (var y = 0; y < model[m].height; y++) {
                         var i = x * 4 + y * 4 * model[m].width;
-                        var p = y + x * model[m].width;
+                        var p = y + x * model[m].height;
                         pctx.data[i] = patternValues[p];
                         pctx.data[i + 1] = patternValues[p];
                         pctx.data[i + 2] = patternValues[p];
@@ -1191,12 +1191,8 @@ var CBL = function (options) {
                 // Debugging help
                 if (typeof debugElement !== 'undefined' && debugElement.length) {
                     for (var i = 0; i < blobs.length; i++) {
-                        if (options.blob_console_debug) {
-                            log("Blob size = " + pixels);
-                        }
                         var test = document.createElement("img");
                         test.src = blobs[i].toDataURL();
-                        // test.border = 1;
                         document.getElementById(debugElement).appendChild(test);
                     }
                 }
