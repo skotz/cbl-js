@@ -295,7 +295,9 @@ var CBL = function (options) {
                     var s = parts[0];
                     model.push({
                         pattern: p,
-                        solution: s
+                        solution: s,
+                        width: options.pattern_width,
+                        height: options.pattern_height
                     });
                 } else if (parts.length == 4) {
                     // New extraction models
@@ -372,16 +374,16 @@ var CBL = function (options) {
         visualizeModel: function (elementId) {
             for (var m = 0; m < model.length; m++) {
                 var pattern = document.createElement('canvas');
-                pattern.width = options.pattern_width;
-                pattern.height = options.pattern_height;
-                var pctx = pattern.getContext('2d').getImageData(0, 0, options.pattern_width, options.pattern_height);
+                pattern.width = model[m].width;
+                pattern.height = model[m].height;
+                var pctx = pattern.getContext('2d').getImageData(0, 0, model[m].width, model[m].height);
 
                 var patternValues = model[m].pattern.split('.');
 
-                for (var x = 0; x < options.pattern_width; x++) {
-                    for (var y = 0; y < options.pattern_height; y++) {
-                        var i = x * 4 + y * 4 * options.pattern_width;
-                        var p = y + x * options.pattern_width;
+                for (var x = 0; x < model[m].width; x++) {
+                    for (var y = 0; y < model[m].height; y++) {
+                        var i = x * 4 + y * 4 * model[m].width;
+                        var p = y + x * model[m].width;
                         pctx.data[i] = patternValues[p];
                         pctx.data[i + 1] = patternValues[p];
                         pctx.data[i + 2] = patternValues[p];
@@ -1005,12 +1007,12 @@ var CBL = function (options) {
                         temp.width = rightmost - leftmost + 1;
                         temp.height = bottommost - topmost + 1;
                         temp.getContext('2d').putImageData(blobContext, -leftmost, -topmost, leftmost, topmost, temp.width, temp.height);
-                        blob.width = segmentWidth;
-                        blob.height = segmentHeight;
+                        blob.width = doNotScale ? temp.width : segmentWidth;
+                        blob.height = doNotScale ? temp.height : segmentHeight;
                         blob.orig_width = temp.width;
                         blob.orig_image = temp;
                         if (doNotScale) {
-                            blob = temp;
+                            blob.getContext('2d').drawImage(temp, 0, 0, temp.width, temp.height);
                         }
                         else if (options.pattern_maintain_ratio) {
                             var dWidth = temp.width;
