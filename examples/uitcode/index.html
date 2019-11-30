@@ -1,7 +1,7 @@
 <!doctype html>
 <html>
 <head>
-    <title>bearwmceo</title>
+    <title>uitcode</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <script type="text/javascript" src="/../../cbl.js"></script>
     <style>
@@ -19,7 +19,7 @@
 </head>
 <body>
     <div class="note">
-        Example in response to <a href="https://github.com/skotz/cbl-js/issues/38">Question #38</a>.
+        Example in response to <a href="https://github.com/skotz/cbl-js/issues/44">Question #44</a>.
     </div>
     <div class="main">
         <div id="debugPreprocessed"></div>
@@ -31,33 +31,33 @@
         var cbl = new CBL({
             preprocess: function(img) {
                 img.debugImage("debugPreprocessed");
+                img.invert(1);
+                img.debugImage("debugPreprocessed");
                 img.binarize(200);
                 img.debugImage("debugPreprocessed");
-                img.colorRegions(50, true, 3);
-                img.debugImage("debugPreprocessed");
             },
-            character_set: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789",
-            exact_characters: 5,
-            pattern_width: 25,
-            pattern_height: 25,
-            blob_min_pixels: 10,
-            blob_max_pixels: 1000,
+            fixed_blob_locations: [
+                { x1: 38, y1: 15, x2:  56, y2: 42 },
+                { x1: 88, y1: 15, x2: 103, y2: 42 }
+            ],
+            character_set: "0123456789",
+            pattern_width: 32,
+            pattern_height: 32,
             allow_console_log: true,
             blob_console_debug: true,
-            perceptive_colorspace: true,
             blob_debug: "debugSegmented"
         });
 
-        //for (var i = 1; i <= 30; i++) {
-        //    cbl.train(i + ".gif");
-        //}
-
-        cbl.train("3jrH5.png");
-        cbl.train("bHaGR.png");
-        cbl.train("GCXKa.png");
-        cbl.train("gSBTt.png");
-        cbl.train("mXTtA.png");
-        cbl.train("PWRSX.png");
+        cbl.train("04.png");
+        cbl.train("28.png");
+        cbl.train("35.png");
+        cbl.train("44.png");
+        cbl.train("51.png");
+        cbl.train("55.png");
+        cbl.train("58.png");
+        cbl.train("61.png");
+        cbl.train("87.png");
+        cbl.train("94.png");
 
         var saveModel = function() {
             cbl.condenseModel();

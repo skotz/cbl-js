@@ -1,7 +1,7 @@
 <!doctype html>
 <html>
 <head>
-    <title>bearwmceo</title>
+    <title>yassinevic</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <script type="text/javascript" src="/../../cbl.js"></script>
     <style>
@@ -19,7 +19,8 @@
 </head>
 <body>
     <div class="note">
-        Example in response to <a href="https://github.com/skotz/cbl-js/issues/38">Question #38</a>.
+        Example in response to <a href="https://github.com/skotz/cbl-js/issues/41">Question #41</a>.
+        Demonstrates horizontal line removal.
     </div>
     <div class="main">
         <div id="debugPreprocessed"></div>
@@ -31,33 +32,39 @@
         var cbl = new CBL({
             preprocess: function(img) {
                 img.debugImage("debugPreprocessed");
-                img.binarize(200);
+                img.cropRelative(22, 2, 22, 2);
                 img.debugImage("debugPreprocessed");
-                img.colorRegions(50, true, 3);
+                img.removeLight(16);
+                img.debugImage("debugPreprocessed");
+                img.removeHorizontalLine(2);
+                img.debugImage("debugPreprocessed");
+                img.colorRegions(50, true, 0);
                 img.debugImage("debugPreprocessed");
             },
-            character_set: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789",
+            character_set: "0123456789abcdefghijklmnopqrstuvwxyz",
+            exact_characters_width: 20,
+            exact_characters_play: 3,
             exact_characters: 5,
-            pattern_width: 25,
-            pattern_height: 25,
-            blob_min_pixels: 10,
-            blob_max_pixels: 1000,
+            blob_min_pixels: 50,
+            blob_max_pixels: 10000,
+            pattern_width: 30,
+            pattern_height: 30,
             allow_console_log: true,
             blob_console_debug: true,
             perceptive_colorspace: true,
             blob_debug: "debugSegmented"
         });
 
-        //for (var i = 1; i <= 30; i++) {
-        //    cbl.train(i + ".gif");
-        //}
-
-        cbl.train("3jrH5.png");
-        cbl.train("bHaGR.png");
-        cbl.train("GCXKa.png");
-        cbl.train("gSBTt.png");
-        cbl.train("mXTtA.png");
-        cbl.train("PWRSX.png");
+        cbl.train("7hg74.png");
+        cbl.train("88f88.png");
+        cbl.train("358r3.png");
+        cbl.train("bw6bn.png");
+        cbl.train("cryy7.png");
+        cbl.train("f2562.png");
+        cbl.train("kemxd.png");
+        cbl.train("w3m7b.png");
+        cbl.train("w8g5b.png");
+        cbl.train("xk557.png");
 
         var saveModel = function() {
             cbl.condenseModel();

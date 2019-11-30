@@ -612,7 +612,26 @@ var CBL = function (options) {
                 return this;
             },
 
-            // Convert the image to black and white given a grayshale threshold
+            // Change all colors above a certain brightness to white
+            removeLight : function (brightness) {
+                var image = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
+                for (var x = 0; x < image.width; x++) {
+                    for (var y = 0; y < image.height; y++) {
+                        var i = x * 4 + y * 4 * image.width;
+                        var diff = Math.max(image.data[i], image.data[i + 1], image.data[i + 2]);
+                        if (diff > brightness) {
+                            image.data[i] = 255;
+                            image.data[i + 1] = 255;
+                            image.data[i + 2] = 255;
+                            image.data[i + 3] = 255;
+                        }
+                    }
+                }
+                canvas.getContext('2d').putImageData(image, 0, 0);
+                return this;
+            },
+
+            // Convert the image to black and white given a grayscale threshold
             binarize : function (threshold) {
                 var image = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
                 for (var x = 0; x < image.width; x++) {
@@ -712,6 +731,97 @@ var CBL = function (options) {
                 var image = canvas.getContext('2d').getImageData(left, top, canvas.width - left - right, canvas.height - top - bottom);
                 canvas.width = canvas.width - left - right;
                 canvas.height = canvas.height - top - bottom;
+                canvas.getContext('2d').putImageData(image, 0, 0);
+                return this;
+            },
+
+            // Remove a horizontal line from the image (must span the entire picture width)
+            removeHorizontalLine : function (lineWidth, color) {
+                if (typeof color === 'undefined') {
+                    color = { r: 0, g: 0, b: 0 };
+                }
+                if (typeof lineWidth === 'undefined') {
+                    lineWidth = 1;
+                }
+                var image = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
+                var play = [ 0, -1, 1 ];
+                // Get all the possible line starts
+                var starts = [];
+                for (var y = 0; y < canvas.height; y++) {
+                    var pixel = this.getPixel(0, y);
+                    if (pixel.r == color.r && pixel.g == color.g && pixel.b == color.b) {
+                        starts.push({ x: 0, y: y });
+                    }
+                }
+                // Get all the possible line ends
+                var ends = [];
+                for (var y = 0; y < canvas.height; y++) {
+                    var pixel = this.getPixel(canvas.width - 1, y);
+                    if (pixel.r == color.r && pixel.g == color.g && pixel.b == color.b) {
+                        ends.push({ x: canvas.width - 1, y: y });
+                    }
+                }
+                // Find a line which connects at least one start with at least one end (with the fewest vertical movements possible)
+                var self = this;
+                var maxSearch = 10000;
+                var dead = [];
+                var search = function (x, y, line) {
+                    if (false) {
+                        // Debug
+                        var i = x * 4 + y * 4 * image.width;
+                        image.data[i + 0] = 255;
+                        image.data[i + 1] = 0;
+                        image.data[i + 2] = 0;
+                        image.data[i + 3] = 255;
+                    }
+                    if (maxSearch-- <= 0) {
+                        return null;
+                    }
+                    var allLines = [];
+                    var copy = JSON.parse(JSON.stringify(line));
+                    copy.points.push({ x: x, y: y });
+                    if (x >= canvas.width - 1 && ends.some(function (e) { return e.x == copy.points[copy.points.length - 1].x && e.y == copy.points[copy.points.length - 1].y; })) {
+                        return copy;
+                    }
+                    var pixel = self.getPixel(x, y);
+                    if (pixel.r != color.r || pixel.g != color.g || pixel.b != color.b) {
+                        return null;
+                    }
+                    for (var d = 0; d < play.length; d++) {
+                        if (y + play[d] >= 0 && y + play[d] < canvas.height) {
+                            copy.vertical += Math.abs(play[d]);
+                            if (dead.some(function (e) { return e.x == x + 1 && e.y == y + play[d]; })) {
+                                // Don't revisit dead nodes
+                                continue;
+                            }
+                            var subLine = search(x + 1, y + play[d], copy);
+                            if (subLine != null) {
+                                allLines.push(subLine);
+                                // Return the first one we find
+                                return subLine;
+                            } else {
+                                dead.push({ x: x + 1, y: y + play[d] });
+                            }
+                        }
+                    }
+                    return allLines && allLines.length ? allLines.reduce(function (a, b) { return a.vertical < b.vertical ? a : b; }) : null;
+                };
+                // Remove the lines
+                for (var s = 0; s < starts.length; s++) {
+                    var line = search(starts[s].x, starts[s].y, { points: [], vertical: 0 });
+                    if (line && line.points) {
+                        for (var p = 0; p < line.points.length; p++) {
+                            for (var w = -lineWidth; w <= lineWidth; w++) {
+                                var i = line.points[p].x * 4 + (line.points[p].y + w) * 4 * image.width;
+                                var k = line.points[p].x * 4 + (line.points[p].y + w - 1) * 4 * image.width;
+                                image.data[i + 0] = image.data[k + 0];
+                                image.data[i + 1] = image.data[k + 1];
+                                image.data[i + 2] = image.data[k + 2];
+                                image.data[i + 3] = 255;
+                            }
+                        }
+                    }
+                }
                 canvas.getContext('2d').putImageData(image, 0, 0);
                 return this;
             },
