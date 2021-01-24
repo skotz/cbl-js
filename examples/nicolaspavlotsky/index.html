@@ -1,0 +1,65 @@
+<!doctype html>
+<html>
+<head>
+    <title>nicolaspavlotsky</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script type="text/javascript" src="/../../cbl.js"></script>
+    <style>
+        #debugPreprocessed img {
+            display: block;
+        }
+        .note {
+            margin: 0 0 15px 0;
+            font-weight: bold;
+        }
+        img {
+            margin: 5px 5px 0 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="note">
+        Example in response to <a href="https://github.com/skotz/cbl-js/issues/59">Question #59</a>.
+    </div>
+    <div class="main">
+        <div id="debugPreprocessed"></div>
+        <div id="debugSegmented"></div>
+        <div id="solution"></div>
+        <div id="visualizeModel"></div>
+    </div>
+    <script>
+        var cbl = new CBL({
+            fixed_blob_locations: [
+                { x1: 20, y1: 14, x2: 39, y2: 33 },
+                { x1: 40, y1: 14, x2: 59, y2: 33 },
+                { x1: 60, y1: 14, x2: 79, y2: 33 },
+                { x1: 80, y1: 14, x2: 99, y2: 33 }
+            ],
+            character_set: "abcdefghijklmnopqrstuvwxyz0123456789",
+            blob_min_pixels: 50,
+            blob_max_pixels: 400,
+            pattern_width: 20,
+            pattern_height: 20,
+            allow_console_log: true,
+            perceptive_colorspace: true,
+            exact_characters: 4,
+            blob_console_debug: true,
+            blob_debug: "debugSegmented"
+        });
+
+        cbl.train("0avp.jpg");
+        cbl.train("7wmv.jpg");
+        cbl.train("8hog.jpg");
+        cbl.train("26j7.jpg");
+        cbl.train("51fo.jpg");
+        cbl.train("56t1.jpg");
+
+        var saveModel = function() {
+            cbl.condenseModel();
+            cbl.sortModel();
+            cbl.visualizeModel("visualizeModel");
+            cbl.saveModel();
+        }
+    </script>
+</body>
+</html>

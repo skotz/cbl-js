@@ -1,0 +1,79 @@
+<!doctype html>
+<html>
+<head>
+    <title>nicolaspavlotsky</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script type="text/javascript" src="/../../cbl.js"></script>
+    <style>
+        #debugPreprocessed img {
+            display: block;
+        }
+        .note {
+            margin: 0 0 15px 0;
+            font-weight: bold;
+        }
+        img {
+            margin: 5px 5px 0 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="note">
+        Example in response to <a href="https://github.com/skotz/cbl-js/issues/59">Question #59</a>.
+    </div>
+    <div class="main">
+        <div id="debugPreprocessed"></div>
+        <div id="debugSegmented"></div>
+        <div id="solution"></div>
+        <div id="visualizeModel"></div>
+    </div>
+    <script>
+        var cbl = new CBL({
+            preprocess: function(img){
+                img.debugImage("debugPreprocessed");
+                img.foreach(function (p) {
+                    var threshold = 20;
+                    var max = Math.max(p.r, p.g, p.b);
+                    var min = Math.min(p.r, p.g, p.b);
+                    var difference = max - min;
+                    if (difference < threshold && p.r < 210 && p.g < 210 && p.b < 210) {
+                        // Pixel is grey, so make it black
+                        p.r = p.g = p.b = 0;
+                    } else {
+                        // Pixel is not grey, so make it white
+                        p.r = p.g = p.b = 255;
+                    }
+                    return p; 
+                });
+                img.debugImage("debugPreprocessed");
+                img.colorRegions(25);
+                img.debugImage("debugPreprocessed");
+            },
+            character_set: "abcdefghijklmnopqrstuvwxyz0123456789",
+            blob_min_pixels: 50,
+            blob_max_pixels: 400,
+            pattern_width: 25,
+            pattern_height: 25,
+            allow_console_log: true,
+            perceptive_colorspace: true,
+            exact_characters: 4,
+            blob_console_debug: true,
+            blob_debug: "debugSegmented"
+        });
+
+        cbl.train("0avp.jpg");
+        cbl.train("7wmv.jpg");
+        cbl.train("8hog.jpg");
+        cbl.train("26j7.jpg");
+        cbl.train("51fo.jpg");
+        cbl.train("56t1.jpg");
+
+        var saveModel = function() {
+            // cbl.condenseModel();
+            cbl.sortModel();
+            cbl.visualizeModel("visualizeModel");
+            cbl.saveModel();
+        }
+    </script>
+</body>
+</html>
