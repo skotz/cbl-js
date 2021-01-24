@@ -2,7 +2,7 @@
  * CBL-js
  * CAPTCHA Breaking Library in JavaScript
  * https://github.com/skotz/cbl-js
- * Copyright (c) 2015-2019 Scott Clayton
+ * Copyright (c) 2015-2021 Scott Clayton
  */
 
 var CBL = function (options) {
@@ -17,6 +17,8 @@ var CBL = function (options) {
         blob_max_pixels: 99999,
         blob_min_width: 1,
         blob_min_height: 1,
+        blob_max_width: 99999,
+        blob_max_height: 99999,
         pattern_width: 20,
         pattern_height: 20,
         pattern_maintain_ratio: false,
@@ -886,7 +888,11 @@ var CBL = function (options) {
                     }
 
                     // Only save blobs of a certain size
-                    if (pixels >= minPixels && pixels <= maxPixels && rightmost - leftmost >= options.blob_min_width && bottommost - topmost >= options.blob_min_height) {
+                    if (pixels >= minPixels && pixels <= maxPixels && 
+                        rightmost - leftmost >= options.blob_min_width && 
+                        bottommost - topmost >= options.blob_min_height && 
+                        rightmost - leftmost <= options.blob_max_width && 
+                        bottommost - topmost <= options.blob_max_height) {
                         // Scale, crop, and resize blobs
                         var temp = document.createElement('canvas');
                         temp.width = rightmost - leftmost + 1;
