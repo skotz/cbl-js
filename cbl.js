@@ -613,6 +613,30 @@ var CBL = function (options) {
                 canvas.getContext('2d').putImageData(image, 0, 0);
                 return this;
             },
+            
+            // Replace transparent pixels with a solid color
+            removeTransparency : function (opacity, color) {
+                if (typeof opacity === 'undefined') {
+                    opacity = 128;
+                }
+                if (typeof color === 'undefined') {
+                    color = { r: 255, g: 255, b: 255 };
+                }
+                var image = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
+                for (var x = 0; x < image.width; x++) {
+                    for (var y = 0; y < image.height; y++) {
+                        var i = x * 4 + y * 4 * image.width;
+                        if (image.data[i + 3] <= opacity) {
+                            image.data[i + 0] = color.r;
+                            image.data[i + 1] = color.g;
+                            image.data[i + 2] = color.b;
+                            image.data[i + 3] = 255;
+                        }
+                    }
+                }
+                canvas.getContext('2d').putImageData(image, 0, 0);
+                return this;
+            },
 
             // Invert the color of every pixel
             invert : function (filter) {
