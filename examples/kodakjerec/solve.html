@@ -1,0 +1,65 @@
+<!doctype html>
+<html>
+<head>
+    <title>CBL-JS Solver</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="../../cbl.css" />
+    <script type="text/javascript" src="../../cbl.min.js"></script>
+</head>
+<body>
+    <div class="main">
+        <img id="captcha" src="./8729.png" />
+        <div id="debugPreprocessed"></div>
+        <br />
+        <input type="text" id="solution">
+        <br />
+        <a href="javascript: void(0)" id="solve" onclick="solve()" style="display: none">Solve!</a>
+    </div>
+    <script>
+        var cbl = new CBL({
+            preprocess: function(img) {
+                // Each pixel lighter than the grayscale threshold of 220 is turned white and everything darker is turned black.
+                img.binarize(100);
+                
+                // Output the work-in-progress image to an element with a specific ID so we can see the effect of our image operations.
+                img.debugImage("debugPreprocessed");
+                
+                // Flood-fill every blob (a grouping of similarly colored pixels) with a unique color. 
+                // This is an important last step of the segmentation phase since the segmenter will create a separate character
+                // image for each unique color in the image. If all the characters are black then the segmenter will only find one character.
+                img.colorRegions(50);
+                
+                // Once again output the image to a div or something so we see the effect of colorization.
+                img.debugImage("debugPreprocessed");
+            },
+            /* Load the model we saved during training. */
+            model_file: "model.txt",
+            character_set: "0123456789",
+            /* The minimum number of pixels required to call a grouping of similar pixels a blob. Use this to filter out small specks before segmentation. */
+            blob_min_pixels: 50,
+            /* The maximum number of pixels required to call a grouping of similar pixels a blob. */
+            blob_max_pixels: 400,
+            /* The width of the extracted blobs. All patterns are normalized to this width. */
+            pattern_width: 25,
+            /* The height of the extracted blobs. All patterns are normalized to this height. */
+            pattern_height: 25,
+            perceptive_colorspace: true,
+            
+            exact_characters: 4,
+            /* Define a method that fires immediately after successfully loading a saved model. */
+            model_loaded: function() {
+                // Don't enable the solve button until the model is loaded.
+                document.getElementById('solve').style.display = "block";
+            }
+        });    
+        
+        var solve = function() {
+            // Using the saved model, attempt to find a solution to a specific image.
+            cbl.solve("captcha").done(function (solution) {
+                // Upon finding a solution, fill the solution textbox with the answer.
+                document.getElementById('solution').value = solution;
+            });
+        }
+    </script>
+</body>
+</html>

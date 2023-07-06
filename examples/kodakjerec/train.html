@@ -1,0 +1,73 @@
+<!doctype html>
+<html>
+<head>
+    <title>CBL-JS Trainer</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="../../cbl.css" />
+    <script type="text/javascript" src="../../cbl.min.js"></script>
+</head>
+<body>
+    <div class="main">
+        <div id="debugPreprocessed"></div>
+        <div id="debugSegmented"></div>
+        <div id="solution"></div>
+        <a href="javascript: void(0)" onclick="saveModel()">Save Model</a>
+    </div>
+    <script>
+        var cbl = new CBL({
+            /* Define a method that takes an input CAPTCHA and performs a set of image operations to remove noise. */
+            preprocess: function(img) {
+                // Each pixel lighter than the grayscale threshold of 220 is turned white and everything darker is turned black.
+                img.binarize(100);
+                
+                // Output the work-in-progress image to an element with a specific ID so we can see the effect of our image operations.
+                img.debugImage("debugPreprocessed");
+                
+                // Flood-fill every blob (a grouping of similarly colored pixels) with a unique color. 
+                // This is an important last step of the segmentation phase since the segmenter will create a separate character
+                // image for each unique color in the image. If all the characters are black then the segmenter will only find one character.
+                img.colorRegions(50);
+                
+                // Once again output the image to a div or something so we see the effect of colorization.
+                img.debugImage("debugPreprocessed");
+            },
+            /* The set of characters that could potentially be in this CAPTCHA system. */
+            character_set: "0123456789",
+            /* The minimum number of pixels required to call a grouping of similar pixels a blob. Use this to filter out small specks before segmentation. */
+            blob_min_pixels: 50,
+            /* The maximum number of pixels required to call a grouping of similar pixels a blob. */
+            blob_max_pixels: 400,
+            /* The width of the extracted blobs. All patterns are normalized to this width. */
+            pattern_width: 25,
+            /* The height of the extracted blobs. All patterns are normalized to this height. */
+            pattern_height: 25,
+            /* Enable advanced logging in the browser's console. */
+            allow_console_log: true,
+            /* Compare the differences between colors using algorithms based on how the human eye perceives color (instead of just an RGB comparison). */
+            perceptive_colorspace: true,
+            /* The ID of the element to output all work-in-progress images of segmented characters from each image. */
+            blob_debug: "debugSegmented",
+            
+            exact_characters: 4,
+        });
+        
+        // Queue up a few images for training. This will run the preprocess and segmentation steps on each image and 
+        // display a modal popup prompting you to classify each character.
+        // Note that if your browser gives you a Cross Origin Request error in the console log it's because you're attempting to load an
+        // image via the file:// protocol which is a security concern. You either need to set up a local server and use http:// or
+        // find some way to disable that security setting during development (not recommended).
+        cbl.train("./1076.png");  
+        cbl.train("./3980.png");  
+        cbl.train("./5796.png");  
+        cbl.train("./7425.png");  
+        cbl.train("./8729.png");  
+        
+        var saveModel = function() {
+            // Download the model after training!
+            // Note that if your browser doesn't automatically prompt you to download the model file (for security reasons), you can
+            // get the serialized model using clb.serializeModel() instead and manually saving it to a file.
+            cbl.saveModel();
+        }        
+    </script>
+</body>
+</html>
