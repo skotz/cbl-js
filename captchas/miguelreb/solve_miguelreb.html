@@ -1,0 +1,63 @@
+<!doctype html>
+<html>
+
+<head>
+    <title>CBL-JS Solver</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="../cbl.css" />
+    <script type="text/javascript" src="../cbl.js"></script>
+</head>
+
+<body>
+    <div class="main">
+        <img id="captcha" src="../captchas/miguelreb/fyx53.png" />
+        <br />
+        <input type="text" id="solution">
+        <br />
+        <a href="javascript: void(0)" id="solve" onclick="solve()" style="display: none">Solve!</a>
+        <div id="debugPreprocessed"></div>
+        <div id="debugSegmented"></div>
+    </div>
+    <script>
+        var cbl = new CBL({
+            /* Define a method that takes an input CAPTCHA and performs a set of image operations to remove noise. */
+            preprocess: function (img) {
+                img.cropRelative(25, 0, 65, 5);
+                img.debugImage("debugPreprocessed");
+                img.removeTransparency(1);
+                img.debugImage("debugPreprocessed");
+                img.colorRegions(10, true);
+                img.debugImage("debugPreprocessed");
+            },
+            model_file: "../captchas/miguelreb/cbl-model.dat",
+            character_set: "0123456789abcdefghijklmnopqrstuvwxyz",
+            exact_characters: 5,
+            pattern_width: 30,
+            pattern_height: 40,
+            blob_min_pixels: 300,
+            blob_max_pixels: 4000,
+            fixed_blob_locations: [
+                { x1: 0, x2: 20, y1: 0, y2: 40 },
+                { x1: 20, x2: 40, y1: 0, y2: 40 },
+                { x1: 40, x2: 60, y1: 0, y2: 40 },
+                { x1: 60, x2: 80, y1: 0, y2: 40 },
+                { x1: 80, x2: 100, y1: 0, y2: 40 }],
+            allow_console_log: true,
+            blob_console_debug: true,
+            model_loaded: function () {
+                // Don't enable the solve button until the model is loaded.
+                document.getElementById('solve').style.display = "block";
+            }
+        });
+
+        var solve = function () {
+            // Using the saved model, attempt to find a solution to a specific image.
+            cbl.solve("captcha").done(function (solution) {
+                // Upon finding a solution, fill the solution textbox with the answer.
+                document.getElementById('solution').value = solution;
+            });
+        }
+    </script>
+</body>
+
+</html>
