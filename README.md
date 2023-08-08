@@ -1,7 +1,11 @@
+# 原始網站
+https://github.com/skotz/cbl-js
 # cbl-js
-A library for CAPTCHA solving written in pure JavaScript using the HTML5 canvas.
+CAPTCHA解析，使用純Javascript和HTML5 canvas
 
-View a [working example](http://skotz.github.io/cbl-js) or read the [quick start guide](starter/quickstart.md).
+作者的範例 [working example](http://skotz.github.io/cbl-js)  
+快速上手 [quick start guide](starter/quickstart.md)  
+中文函數操作範例 [function sample](starter/functionSample-zhTW.md)  
 
 ![Preprocessing Example](https://raw.githubusercontent.com/skotz/cbl-js/master/examples/codeproject/preprocess_steps.png)
 

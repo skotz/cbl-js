@@ -1,3 +1,7 @@
+# Start a http.server
+```python
+python -m http.server
+```
 # Solving a CAPTCHA with CBL-JS
 
 The best way to get started is to download or clone this repository and play around with the example scripts in the startup folder.
