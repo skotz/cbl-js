@@ -27,10 +27,10 @@ img.cropRelative(25, 0, 65, 5);
 # colorRegions(tolerance, ignoreWhite, pixelJump)
 >Fills each distinct region in the image with a different random color
 
-圖像中的不同區域填上隨機顏色.
-tolerance: 隨機度, 愈高愈隨機
-ignoreWhite: true-跳過白色區域
-pixelJump: 隨機幾個像素跳過不處理
+圖像中的不同區域填上隨機顏色.  
+tolerance: 隨機度, 愈高愈隨機  
+ignoreWhite: true-跳過白色區域  
+pixelJump: 隨機幾個像素跳過不處理  
 ```js
 img.colorRegions(128, false, 0);
 ```
