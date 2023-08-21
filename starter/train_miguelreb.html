@@ -1,0 +1,64 @@
+<!doctype html>
+<html>
+
+<head>
+    <title>CBL-JS Trainer</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="../cbl.css" />
+    <script type="text/javascript" src="../cbl.js"></script>
+</head>
+
+<body>
+    <div class="main">
+        <div id="debugPreprocessed"></div>
+        <div id="debugSegmented"></div>
+        <div id="solution"></div>
+        <a href="javascript: void(0)" onclick="saveModel()">Save Model</a>
+    </div>
+    <script>
+        var cbl = new CBL({
+            /* Define a method that takes an input CAPTCHA and performs a set of image operations to remove noise. */
+            preprocess: function (img) {
+                img.debugImage("debugPreprocessed");
+                img.removeTransparency(128, { r: 255, g: 255, b: 0 });
+                img.cropRelative(25, 0, 65, 5);
+                img.debugImage("debugPreprocessed");
+            },
+            character_set: "0123456789abcdefghijklmnopqrstuvwxyz",
+            exact_characters: 5,
+            pattern_width: 23,
+            pattern_height: 40,
+            blob_min_pixels: 300,
+            blob_max_pixels: 4000,
+            fixed_blob_locations: [
+                { x1: 0, x2: 22, y1: 0, y2: 40 },
+                { x1: 22, x2: 44, y1: 0, y2: 40 },
+                { x1: 44, x2: 66, y1: 0, y2: 40 },
+                { x1: 66, x2: 88, y1: 0, y2: 40 },
+                { x1: 88, x2: 110, y1: 0, y2: 40 }],
+            allow_console_log: true,
+            blob_console_debug: true,
+            blob_debug: "debugSegmented"
+        });
+
+        // Queue up a few images for training. This will run the preprocess and segmentation steps on each image and 
+        // display a modal popup prompting you to classify each character.
+        // Note that if your browser gives you a Cross Origin Request error in the console log it's because you're attempting to load an
+        // image via the file:// protocol which is a security concern. You either need to set up a local server and use http:// or
+        // find some way to disable that security setting during development (not recommended).
+        cbl.train("../captchas/miguelreb/46gh5.png");
+        cbl.train("../captchas/miguelreb/256xx.png");
+        cbl.train("../captchas/miguelreb/fyx53.png");
+        cbl.train("../captchas/miguelreb/k7pwp.png");
+        cbl.train("../captchas/miguelreb/mbe73.png");
+
+        var saveModel = function () {
+            // Download the model after training!
+            // Note that if your browser doesn't automatically prompt you to download the model file (for security reasons), you can
+            // get the serialized model using clb.serializeModel() instead and manually saving it to a file.
+            cbl.saveModel();
+        }        
+    </script>
+</body>
+
+</html>
