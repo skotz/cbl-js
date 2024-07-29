@@ -8,11 +8,11 @@
 var CBL = function (options) {
 
     var defaults = {
-        preprocess: function() { warn("You should define a preprocess method!"); },
+        preprocess: function () { warn("You should define a preprocess method!"); },
         model_file: "",
         model_string: "",
-        model_loaded: function() { },
-        training_complete: function() { },
+        model_loaded: function () { },
+        training_complete: function () { },
         blob_min_pixels: 1,
         blob_max_pixels: 99999,
         blob_min_width: 1,
@@ -30,7 +30,7 @@ var CBL = function (options) {
         allow_console_warn: true,
         perceptive_colorspace: false,
         character_set: "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
-        fixed_blob_locations: [ ], // Expected format: [ { x1: 0, y1: 0, x2: 0, y2: 0 }, ... ]
+        fixed_blob_locations: [], // Expected format: [ { x1: 0, y1: 0, x2: 0, y2: 0 }, ... ]
         exact_characters: -1,
         exact_characters_width: -1, // Used to guess how many characters there are in a large blob
         exact_characters_play: -1 // Used to find a good vertical split point when splitting by an exact number of characters
@@ -50,11 +50,11 @@ var CBL = function (options) {
         \***********************************************/
 
         // Load an image and attempt to solve it based on trained model
-        solve : function (el) {
+        solve: function (el) {
             return obj.train(el, true);
         },
 
-        done : function (resultHandler) {
+        done: function (resultHandler) {
             addQueue(function () {
                 resultHandler(doneResult);
                 runQueue();
@@ -62,11 +62,11 @@ var CBL = function (options) {
         },
 
         // Load an image and attempt to solve it based on trained model
-        train : function (el, solving) {
+        train: function (el, solving) {
             if (typeof solving === 'undefined') {
                 solving = false;
             }
-            addQueue(function() {
+            addQueue(function () {
                 var image;
                 var needSetSrc = false;
                 if (document.getElementById(el) != null) {
@@ -75,7 +75,7 @@ var CBL = function (options) {
                     image = document.createElement("img");
                     needSetSrc = true;
                 }
-                var afterLoad = function() {
+                var afterLoad = function () {
                     var solution = "";
                     var canvas = document.createElement('canvas');
                     canvas.width = image.width;
@@ -90,15 +90,15 @@ var CBL = function (options) {
                     var blobs;
                     if (options.fixed_blob_locations.length > 0) {
                         blobs = cblImage.segmentBlocks(options.pattern_width,
-                                                       options.pattern_height,
-                                                       options.fixed_blob_locations,
-                                                       options.blob_debug);
+                            options.pattern_height,
+                            options.fixed_blob_locations,
+                            options.blob_debug);
                     } else {
                         blobs = cblImage.segmentBlobs(options.blob_min_pixels,
-                                                      options.blob_max_pixels,
-                                                      options.pattern_width,
-                                                      options.pattern_height,
-                                                      options.blob_debug);
+                            options.blob_max_pixels,
+                            options.pattern_width,
+                            options.pattern_height,
+                            options.blob_debug);
                     }
 
                     // FOR TRAINING
@@ -152,14 +152,14 @@ var CBL = function (options) {
         },
 
         // Load the next pattern pending human classification
-        loadNextPattern: function() {
+        loadNextPattern: function () {
             var nextPattern = pendingPatterns.pop();
             if (nextPattern) {
                 log("Loading a pattern for human classification.");
                 openClassifierDialog();
                 document.getElementById(nextPattern.imgId).src = nextPattern.imgSrc;
                 document.getElementById(nextPattern.txtId).focus();
-                document.getElementById(nextPattern.txtId).onkeyup = function(event) {
+                document.getElementById(nextPattern.txtId).onkeyup = function (event) {
                     var typedLetter = document.getElementById(nextPattern.txtId).value;
                     if ((options.character_set.indexOf(typedLetter) > -1 && typedLetter.length) || typedLetter == options.incorrect_segment_char) {
                         if (typedLetter != options.incorrect_segment_char) {
@@ -224,7 +224,7 @@ var CBL = function (options) {
                 var xhr = new XMLHttpRequest();
                 xhr.open("GET", url, true);
                 xhr.send();
-                xhr.onreadystatechange = function() {
+                xhr.onreadystatechange = function () {
                     if (xhr.readyState == 4 && xhr.status == 200 && xhr.responseText) {
                         obj.loadModelString(xhr.responseText);
                     }
@@ -262,8 +262,8 @@ var CBL = function (options) {
         },
 
         // Sort the model by pattern solution alphabetically
-        sortModel: function() {
-            model = model.sort(function(a, b) { return a.solution.localeCompare(b.solution); });
+        sortModel: function () {
+            model = model.sort(function (a, b) { return a.solution.localeCompare(b.solution); });
         },
 
         // Output the model as images to an element for debugging
@@ -437,43 +437,43 @@ var CBL = function (options) {
             },
 
             // Blur the image (box blur)
-            blur : function (level) {
+            blur: function (level) {
                 if (typeof level === 'undefined') {
                     level = 1;
                 }
 
                 if (level == 2) {
-                    return this.convolute([ [1, 1, 1, 1, 1],
-                                            [1, 1, 1, 1, 1],
-                                            [1, 1, 1, 1, 1],
-                                            [1, 1, 1, 1, 1],
-                                            [1, 1, 1, 1, 1] ], 1.0/25);
+                    return this.convolute([[1, 1, 1, 1, 1],
+                    [1, 1, 1, 1, 1],
+                    [1, 1, 1, 1, 1],
+                    [1, 1, 1, 1, 1],
+                    [1, 1, 1, 1, 1]], 1.0 / 25);
                 }
                 else if (level == 3) {
-                    return this.convolute([ [1, 1, 1, 1, 1, 1, 1],
-                                            [1, 1, 1, 1, 1, 1, 1],
-                                            [1, 1, 1, 1, 1, 1, 1],
-                                            [1, 1, 1, 1, 1, 1, 1],
-                                            [1, 1, 1, 1, 1, 1, 1],
-                                            [1, 1, 1, 1, 1, 1, 1],
-                                            [1, 1, 1, 1, 1, 1, 1] ], 1.0/49);
+                    return this.convolute([[1, 1, 1, 1, 1, 1, 1],
+                    [1, 1, 1, 1, 1, 1, 1],
+                    [1, 1, 1, 1, 1, 1, 1],
+                    [1, 1, 1, 1, 1, 1, 1],
+                    [1, 1, 1, 1, 1, 1, 1],
+                    [1, 1, 1, 1, 1, 1, 1],
+                    [1, 1, 1, 1, 1, 1, 1]], 1.0 / 49);
                 }
                 else {
-                    return this.convolute([ [1, 1, 1],
-                                            [1, 1, 1],
-                                            [1, 1, 1] ], 1.0/9);
+                    return this.convolute([[1, 1, 1],
+                    [1, 1, 1],
+                    [1, 1, 1]], 1.0 / 9);
                 }
             },
 
             // Sharpen
-            sharpen : function () {
-                return this.convolute([ [ 0, -1,  0],
-                                        [-1,  5, -1],
-                                        [ 0, -1,  0] ]);
+            sharpen: function () {
+                return this.convolute([[0, -1, 0],
+                [-1, 5, -1],
+                [0, -1, 0]]);
             },
 
             // Convert the image to grayscale
-            grayscale : function () {
+            grayscale: function () {
                 var image = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
                 for (var x = 0; x < image.width; x++) {
                     for (var y = 0; y < image.height; y++) {
@@ -490,7 +490,7 @@ var CBL = function (options) {
             },
 
             // Change all semi-gray colors to white
-            removeGray : function (tolerance) {
+            removeGray: function (tolerance) {
                 var image = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
                 for (var x = 0; x < image.width; x++) {
                     for (var y = 0; y < image.height; y++) {
@@ -511,7 +511,7 @@ var CBL = function (options) {
             },
 
             // Change all colors above a certain brightness to white
-            removeLight : function (brightness) {
+            removeLight: function (brightness) {
                 var image = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
                 for (var x = 0; x < image.width; x++) {
                     for (var y = 0; y < image.height; y++) {
@@ -530,7 +530,7 @@ var CBL = function (options) {
             },
 
             // Convert the image to black and white given a grayscale threshold
-            binarize : function (threshold) {
+            binarize: function (threshold) {
                 var image = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
                 for (var x = 0; x < image.width; x++) {
                     for (var y = 0; y < image.height; y++) {
@@ -547,7 +547,7 @@ var CBL = function (options) {
             },
 
             // Apply a convolution filter
-            convolute : function (matrix, factor) {
+            convolute: function (matrix, factor) {
                 var image = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
                 var out = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
                 var w = matrix[0].length;
@@ -586,16 +586,16 @@ var CBL = function (options) {
             },
 
             // Apply an erosion filter
-            erode : function () {
-                return this.convolute([ [-1, -1, -1],
-                                        [-1,  8, -1],
-                                        [-1, -1, -1] ]);
+            erode: function () {
+                return this.convolute([[-1, -1, -1],
+                [-1, 8, -1],
+                [-1, -1, -1]]);
             },
 
             // Apply an specific filter to each pixel
             // The filter method should accept and return one parameter that will have three properties: r, g, and b
             // foreach(function (p) { return p; })
-            foreach : function (filter) {
+            foreach: function (filter) {
                 var image = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
                 for (var x = 0; x < image.width; x++) {
                     for (var y = 0; y < image.height; y++) {
@@ -613,9 +613,9 @@ var CBL = function (options) {
                 canvas.getContext('2d').putImageData(image, 0, 0);
                 return this;
             },
-            
+
             // Replace transparent pixels with a solid color
-            removeTransparency : function (opacity, color) {
+            removeTransparency: function (opacity, color) {
                 if (typeof opacity === 'undefined') {
                     opacity = 128;
                 }
@@ -639,7 +639,7 @@ var CBL = function (options) {
             },
 
             // Invert the color of every pixel
-            invert : function (filter) {
+            invert: function (filter) {
                 return this.foreach(function (p) {
                     p.r = 255 - p.r;
                     p.g = 255 - p.g;
@@ -649,7 +649,7 @@ var CBL = function (options) {
             },
 
             // Crop an image
-            cropRelative : function (left, top, right, bottom) {
+            cropRelative: function (left, top, right, bottom) {
                 var image = canvas.getContext('2d').getImageData(left, top, canvas.width - left - right, canvas.height - top - bottom);
                 canvas.width = canvas.width - left - right;
                 canvas.height = canvas.height - top - bottom;
@@ -658,7 +658,7 @@ var CBL = function (options) {
             },
 
             // Remove a horizontal line from the image (must span the entire picture width)
-            removeHorizontalLine : function (lineWidth, color) {
+            removeHorizontalLine: function (lineWidth, color) {
                 if (typeof color === 'undefined') {
                     color = { r: 0, g: 0, b: 0 };
                 }
@@ -666,7 +666,7 @@ var CBL = function (options) {
                     lineWidth = 1;
                 }
                 var image = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
-                var play = [ 0, -1, 1 ];
+                var play = [0, -1, 1];
                 // Get all the possible line starts
                 var starts = [];
                 for (var y = 0; y < canvas.height; y++) {
@@ -754,7 +754,7 @@ var CBL = function (options) {
 
             // Get the R, G, and B values of a pixel at a given location in the image
             // Returned object is in the format { r: 0, g: 0, b: 0 }
-            getPixel : function (x, y) {
+            getPixel: function (x, y) {
                 var image = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
                 var i = x * 4 + y * 4 * image.width;
                 var pixel = { r: image.data[i + 0], g: image.data[i + 1], b: image.data[i + 2] };
@@ -766,7 +766,7 @@ var CBL = function (options) {
             \***********************************************/
 
             // Cut the image into separate, pre-defined sections
-            segmentBlocks : function (segmentWidth, segmentHeight, segmentLocations, debugElement) {
+            segmentBlocks: function (segmentWidth, segmentHeight, segmentLocations, debugElement) {
                 if (typeof segmentWidth === 'undefined') {
                     segmentWidth = 20;
                 }
@@ -774,7 +774,7 @@ var CBL = function (options) {
                     segmentHeight = 20;
                 }
                 if (typeof segmentLocations === 'undefined') {
-                    segmentLocations = [ ];
+                    segmentLocations = [];
                 }
 
                 var image = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
@@ -834,7 +834,7 @@ var CBL = function (options) {
             },
 
             // Cut the image into separate blobs where each distinct color is a blob
-            segmentBlobs : function (minPixels, maxPixels, segmentWidth, segmentHeight, debugElement) {
+            segmentBlobs: function (minPixels, maxPixels, segmentWidth, segmentHeight, debugElement) {
                 if (typeof minPixels === 'undefined') {
                     minPixels = 1;
                 }
@@ -850,7 +850,7 @@ var CBL = function (options) {
 
                 var image = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
                 var toColor = function (d, i) { return d[i] * 255 * 255 + d[i + 1] * 256 + d[i + 2]; };
-                var white = toColor([ 255, 255, 255 ], 0);
+                var white = toColor([255, 255, 255], 0);
 
                 // Find distinct colors
                 var colors = new Array();
@@ -912,10 +912,10 @@ var CBL = function (options) {
                     }
 
                     // Only save blobs of a certain size
-                    if (pixels >= minPixels && pixels <= maxPixels && 
-                        rightmost - leftmost >= options.blob_min_width && 
-                        bottommost - topmost >= options.blob_min_height && 
-                        rightmost - leftmost <= options.blob_max_width && 
+                    if (pixels >= minPixels && pixels <= maxPixels &&
+                        rightmost - leftmost >= options.blob_min_width &&
+                        bottommost - topmost >= options.blob_min_height &&
+                        rightmost - leftmost <= options.blob_max_width &&
                         bottommost - topmost <= options.blob_max_height) {
                         // Scale, crop, and resize blobs
                         var temp = document.createElement('canvas');
@@ -973,7 +973,7 @@ var CBL = function (options) {
                             resultingBlobs = Math.min(resultingBlobs, options.exact_characters - blobs.length + 1);
                         }
 
-                        for (var split = 1; split <= resultingBlobs; split ++) {
+                        for (var split = 1; split <= resultingBlobs; split++) {
                             var splitSection = cloneCanvas(blobs[largestIndex].orig_image);
                             var blobContext = splitSection.getContext('2d').getImageData(0, 0, splitSection.width, splitSection.height);
 
@@ -1116,7 +1116,7 @@ var CBL = function (options) {
                 return blobs;
             },
 
-            histogramRotate : function (blob) {
+            histogramRotate: function (blob) {
                 var initial = new Image();
                 initial.src = blob.toDataURL();
 
@@ -1131,7 +1131,7 @@ var CBL = function (options) {
                     test.height = blob.height;
                     testctx.save();
                     testctx.translate(blob.width / 2, blob.height / 2);
-                    testctx.rotate(degrees * Math.PI/180);
+                    testctx.rotate(degrees * Math.PI / 180);
                     testctx.drawImage(initial, -initial.width / 2, -initial.width / 2);
                     testctx.restore();
                     var testImage = testctx.getImageData(0, 0, test.width, test.height)
@@ -1323,7 +1323,7 @@ var CBL = function (options) {
 
     // Measure the difference between two colors in the RGB colorspace using Root Mean Square
     var colorCompareMaxRGB = function (color1, color2) {
-        return Math.sqrt((Math.pow(color1.r - color2.r, 2), Math.pow(color1.g - color2.g, 2), Math.pow(color1.g - color2.g, 2))/3);
+        return Math.sqrt((Math.pow(color1.r - color2.r, 2), Math.pow(color1.g - color2.g, 2), Math.pow(color1.g - color2.g, 2)) / 3);
     };
 
     // Measure the difference between two colors as measured by the human eye.
@@ -1388,7 +1388,7 @@ var CBL = function (options) {
     };
 
     var toColor = function (r, g, b) {
-        return {r: r, g: g, b: b, a: 255};
+        return { r: r, g: g, b: b, a: 255 };
     };
 
     var getRandomColor = function () {
@@ -1445,7 +1445,7 @@ var CBL = function (options) {
                 '    <small><a href="https://github.com/skotz/cbl-js" target="_blank">CBL-js &copy; Scott Clayton</a></small>' +
                 '</div>');
 
-            document.getElementById("cbl-close").addEventListener("click", function(e) {
+            document.getElementById("cbl-close").addEventListener("click", function (e) {
                 closeClassifierDialog();
                 e.preventDefault();
             });
@@ -1465,7 +1465,7 @@ var CBL = function (options) {
     };
 
     // ZIP compression from https://github.com/pieroxy/lz-string
-    var LZString=function(){function o(o,r){if(!t[o]){t[o]={};for(var n=0;n<o.length;n++)t[o][o.charAt(n)]=n}return t[o][r]}var r=String.fromCharCode,n="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=",e="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+-$",t={},i={compressToBase64:function(o){if(null==o)return"";var r=i._compress(o,6,function(o){return n.charAt(o)});switch(r.length%4){default:case 0:return r;case 1:return r+"===";case 2:return r+"==";case 3:return r+"="}},decompressFromBase64:function(r){return null==r?"":""==r?null:i._decompress(r.length,32,function(e){return o(n,r.charAt(e))})},compressToUTF16:function(o){return null==o?"":i._compress(o,15,function(o){return r(o+32)})+" "},decompressFromUTF16:function(o){return null==o?"":""==o?null:i._decompress(o.length,16384,function(r){return o.charCodeAt(r)-32})},compressToUint8Array:function(o){for(var r=i.compress(o),n=new Uint8Array(2*r.length),e=0,t=r.length;t>e;e++){var s=r.charCodeAt(e);n[2*e]=s>>>8,n[2*e+1]=s%256}return n},decompressFromUint8Array:function(o){if(null===o||void 0===o)return i.decompress(o);for(var n=new Array(o.length/2),e=0,t=n.length;t>e;e++)n[e]=256*o[2*e]+o[2*e+1];var s=[];return n.forEach(function(o){s.push(r(o))}),i.decompress(s.join(""))},compressToEncodedURIComponent:function(o){return null==o?"":i._compress(o,6,function(o){return e.charAt(o)})},decompressFromEncodedURIComponent:function(r){return null==r?"":""==r?null:(r=r.replace(/ /g,"+"),i._decompress(r.length,32,function(n){return o(e,r.charAt(n))}))},compress:function(o){return i._compress(o,16,function(o){return r(o)})},_compress:function(o,r,n){if(null==o)return"";var e,t,i,s={},p={},u="",c="",a="",l=2,f=3,h=2,d=[],m=0,v=0;for(i=0;i<o.length;i+=1)if(u=o.charAt(i),Object.prototype.hasOwnProperty.call(s,u)||(s[u]=f++,p[u]=!0),c=a+u,Object.prototype.hasOwnProperty.call(s,c))a=c;else{if(Object.prototype.hasOwnProperty.call(p,a)){if(a.charCodeAt(0)<256){for(e=0;h>e;e++)m<<=1,v==r-1?(v=0,d.push(n(m)),m=0):v++;for(t=a.charCodeAt(0),e=0;8>e;e++)m=m<<1|1&t,v==r-1?(v=0,d.push(n(m)),m=0):v++,t>>=1}else{for(t=1,e=0;h>e;e++)m=m<<1|t,v==r-1?(v=0,d.push(n(m)),m=0):v++,t=0;for(t=a.charCodeAt(0),e=0;16>e;e++)m=m<<1|1&t,v==r-1?(v=0,d.push(n(m)),m=0):v++,t>>=1}l--,0==l&&(l=Math.pow(2,h),h++),delete p[a]}else for(t=s[a],e=0;h>e;e++)m=m<<1|1&t,v==r-1?(v=0,d.push(n(m)),m=0):v++,t>>=1;l--,0==l&&(l=Math.pow(2,h),h++),s[c]=f++,a=String(u)}if(""!==a){if(Object.prototype.hasOwnProperty.call(p,a)){if(a.charCodeAt(0)<256){for(e=0;h>e;e++)m<<=1,v==r-1?(v=0,d.push(n(m)),m=0):v++;for(t=a.charCodeAt(0),e=0;8>e;e++)m=m<<1|1&t,v==r-1?(v=0,d.push(n(m)),m=0):v++,t>>=1}else{for(t=1,e=0;h>e;e++)m=m<<1|t,v==r-1?(v=0,d.push(n(m)),m=0):v++,t=0;for(t=a.charCodeAt(0),e=0;16>e;e++)m=m<<1|1&t,v==r-1?(v=0,d.push(n(m)),m=0):v++,t>>=1}l--,0==l&&(l=Math.pow(2,h),h++),delete p[a]}else for(t=s[a],e=0;h>e;e++)m=m<<1|1&t,v==r-1?(v=0,d.push(n(m)),m=0):v++,t>>=1;l--,0==l&&(l=Math.pow(2,h),h++)}for(t=2,e=0;h>e;e++)m=m<<1|1&t,v==r-1?(v=0,d.push(n(m)),m=0):v++,t>>=1;for(;;){if(m<<=1,v==r-1){d.push(n(m));break}v++}return d.join("")},decompress:function(o){return null==o?"":""==o?null:i._decompress(o.length,32768,function(r){return o.charCodeAt(r)})},_decompress:function(o,n,e){var t,i,s,p,u,c,a,l,f=[],h=4,d=4,m=3,v="",w=[],A={val:e(0),position:n,index:1};for(i=0;3>i;i+=1)f[i]=i;for(p=0,c=Math.pow(2,2),a=1;a!=c;)u=A.val&A.position,A.position>>=1,0==A.position&&(A.position=n,A.val=e(A.index++)),p|=(u>0?1:0)*a,a<<=1;switch(t=p){case 0:for(p=0,c=Math.pow(2,8),a=1;a!=c;)u=A.val&A.position,A.position>>=1,0==A.position&&(A.position=n,A.val=e(A.index++)),p|=(u>0?1:0)*a,a<<=1;l=r(p);break;case 1:for(p=0,c=Math.pow(2,16),a=1;a!=c;)u=A.val&A.position,A.position>>=1,0==A.position&&(A.position=n,A.val=e(A.index++)),p|=(u>0?1:0)*a,a<<=1;l=r(p);break;case 2:return""}for(f[3]=l,s=l,w.push(l);;){if(A.index>o)return"";for(p=0,c=Math.pow(2,m),a=1;a!=c;)u=A.val&A.position,A.position>>=1,0==A.position&&(A.position=n,A.val=e(A.index++)),p|=(u>0?1:0)*a,a<<=1;switch(l=p){case 0:for(p=0,c=Math.pow(2,8),a=1;a!=c;)u=A.val&A.position,A.position>>=1,0==A.position&&(A.position=n,A.val=e(A.index++)),p|=(u>0?1:0)*a,a<<=1;f[d++]=r(p),l=d-1,h--;break;case 1:for(p=0,c=Math.pow(2,16),a=1;a!=c;)u=A.val&A.position,A.position>>=1,0==A.position&&(A.position=n,A.val=e(A.index++)),p|=(u>0?1:0)*a,a<<=1;f[d++]=r(p),l=d-1,h--;break;case 2:return w.join("")}if(0==h&&(h=Math.pow(2,m),m++),f[l])v=f[l];else{if(l!==d)return null;v=s+s.charAt(0)}w.push(v),f[d++]=s+v.charAt(0),h--,s=v,0==h&&(h=Math.pow(2,m),m++)}}};return i}();"function"==typeof define&&define.amd?define(function(){return LZString}):"undefined"!=typeof module&&null!=module&&(module.exports=LZString);
+    var LZString = function () { function o(o, r) { if (!t[o]) { t[o] = {}; for (var n = 0; n < o.length; n++)t[o][o.charAt(n)] = n } return t[o][r] } var r = String.fromCharCode, n = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=", e = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+-$", t = {}, i = { compressToBase64: function (o) { if (null == o) return ""; var r = i._compress(o, 6, function (o) { return n.charAt(o) }); switch (r.length % 4) { default: case 0: return r; case 1: return r + "==="; case 2: return r + "=="; case 3: return r + "=" } }, decompressFromBase64: function (r) { return null == r ? "" : "" == r ? null : i._decompress(r.length, 32, function (e) { return o(n, r.charAt(e)) }) }, compressToUTF16: function (o) { return null == o ? "" : i._compress(o, 15, function (o) { return r(o + 32) }) + " " }, decompressFromUTF16: function (o) { return null == o ? "" : "" == o ? null : i._decompress(o.length, 16384, function (r) { return o.charCodeAt(r) - 32 }) }, compressToUint8Array: function (o) { for (var r = i.compress(o), n = new Uint8Array(2 * r.length), e = 0, t = r.length; t > e; e++) { var s = r.charCodeAt(e); n[2 * e] = s >>> 8, n[2 * e + 1] = s % 256 } return n }, decompressFromUint8Array: function (o) { if (null === o || void 0 === o) return i.decompress(o); for (var n = new Array(o.length / 2), e = 0, t = n.length; t > e; e++)n[e] = 256 * o[2 * e] + o[2 * e + 1]; var s = []; return n.forEach(function (o) { s.push(r(o)) }), i.decompress(s.join("")) }, compressToEncodedURIComponent: function (o) { return null == o ? "" : i._compress(o, 6, function (o) { return e.charAt(o) }) }, decompressFromEncodedURIComponent: function (r) { return null == r ? "" : "" == r ? null : (r = r.replace(/ /g, "+"), i._decompress(r.length, 32, function (n) { return o(e, r.charAt(n)) })) }, compress: function (o) { return i._compress(o, 16, function (o) { return r(o) }) }, _compress: function (o, r, n) { if (null == o) return ""; var e, t, i, s = {}, p = {}, u = "", c = "", a = "", l = 2, f = 3, h = 2, d = [], m = 0, v = 0; for (i = 0; i < o.length; i += 1)if (u = o.charAt(i), Object.prototype.hasOwnProperty.call(s, u) || (s[u] = f++, p[u] = !0), c = a + u, Object.prototype.hasOwnProperty.call(s, c)) a = c; else { if (Object.prototype.hasOwnProperty.call(p, a)) { if (a.charCodeAt(0) < 256) { for (e = 0; h > e; e++)m <<= 1, v == r - 1 ? (v = 0, d.push(n(m)), m = 0) : v++; for (t = a.charCodeAt(0), e = 0; 8 > e; e++)m = m << 1 | 1 & t, v == r - 1 ? (v = 0, d.push(n(m)), m = 0) : v++, t >>= 1 } else { for (t = 1, e = 0; h > e; e++)m = m << 1 | t, v == r - 1 ? (v = 0, d.push(n(m)), m = 0) : v++, t = 0; for (t = a.charCodeAt(0), e = 0; 16 > e; e++)m = m << 1 | 1 & t, v == r - 1 ? (v = 0, d.push(n(m)), m = 0) : v++, t >>= 1 } l--, 0 == l && (l = Math.pow(2, h), h++), delete p[a] } else for (t = s[a], e = 0; h > e; e++)m = m << 1 | 1 & t, v == r - 1 ? (v = 0, d.push(n(m)), m = 0) : v++, t >>= 1; l--, 0 == l && (l = Math.pow(2, h), h++), s[c] = f++, a = String(u) } if ("" !== a) { if (Object.prototype.hasOwnProperty.call(p, a)) { if (a.charCodeAt(0) < 256) { for (e = 0; h > e; e++)m <<= 1, v == r - 1 ? (v = 0, d.push(n(m)), m = 0) : v++; for (t = a.charCodeAt(0), e = 0; 8 > e; e++)m = m << 1 | 1 & t, v == r - 1 ? (v = 0, d.push(n(m)), m = 0) : v++, t >>= 1 } else { for (t = 1, e = 0; h > e; e++)m = m << 1 | t, v == r - 1 ? (v = 0, d.push(n(m)), m = 0) : v++, t = 0; for (t = a.charCodeAt(0), e = 0; 16 > e; e++)m = m << 1 | 1 & t, v == r - 1 ? (v = 0, d.push(n(m)), m = 0) : v++, t >>= 1 } l--, 0 == l && (l = Math.pow(2, h), h++), delete p[a] } else for (t = s[a], e = 0; h > e; e++)m = m << 1 | 1 & t, v == r - 1 ? (v = 0, d.push(n(m)), m = 0) : v++, t >>= 1; l--, 0 == l && (l = Math.pow(2, h), h++) } for (t = 2, e = 0; h > e; e++)m = m << 1 | 1 & t, v == r - 1 ? (v = 0, d.push(n(m)), m = 0) : v++, t >>= 1; for (; ;) { if (m <<= 1, v == r - 1) { d.push(n(m)); break } v++ } return d.join("") }, decompress: function (o) { return null == o ? "" : "" == o ? null : i._decompress(o.length, 32768, function (r) { return o.charCodeAt(r) }) }, _decompress: function (o, n, e) { var t, i, s, p, u, c, a, l, f = [], h = 4, d = 4, m = 3, v = "", w = [], A = { val: e(0), position: n, index: 1 }; for (i = 0; 3 > i; i += 1)f[i] = i; for (p = 0, c = Math.pow(2, 2), a = 1; a != c;)u = A.val & A.position, A.position >>= 1, 0 == A.position && (A.position = n, A.val = e(A.index++)), p |= (u > 0 ? 1 : 0) * a, a <<= 1; switch (t = p) { case 0: for (p = 0, c = Math.pow(2, 8), a = 1; a != c;)u = A.val & A.position, A.position >>= 1, 0 == A.position && (A.position = n, A.val = e(A.index++)), p |= (u > 0 ? 1 : 0) * a, a <<= 1; l = r(p); break; case 1: for (p = 0, c = Math.pow(2, 16), a = 1; a != c;)u = A.val & A.position, A.position >>= 1, 0 == A.position && (A.position = n, A.val = e(A.index++)), p |= (u > 0 ? 1 : 0) * a, a <<= 1; l = r(p); break; case 2: return "" }for (f[3] = l, s = l, w.push(l); ;) { if (A.index > o) return ""; for (p = 0, c = Math.pow(2, m), a = 1; a != c;)u = A.val & A.position, A.position >>= 1, 0 == A.position && (A.position = n, A.val = e(A.index++)), p |= (u > 0 ? 1 : 0) * a, a <<= 1; switch (l = p) { case 0: for (p = 0, c = Math.pow(2, 8), a = 1; a != c;)u = A.val & A.position, A.position >>= 1, 0 == A.position && (A.position = n, A.val = e(A.index++)), p |= (u > 0 ? 1 : 0) * a, a <<= 1; f[d++] = r(p), l = d - 1, h--; break; case 1: for (p = 0, c = Math.pow(2, 16), a = 1; a != c;)u = A.val & A.position, A.position >>= 1, 0 == A.position && (A.position = n, A.val = e(A.index++)), p |= (u > 0 ? 1 : 0) * a, a <<= 1; f[d++] = r(p), l = d - 1, h--; break; case 2: return w.join("") }if (0 == h && (h = Math.pow(2, m), m++), f[l]) v = f[l]; else { if (l !== d) return null; v = s + s.charAt(0) } w.push(v), f[d++] = s + v.charAt(0), h--, s = v, 0 == h && (h = Math.pow(2, m), m++) } } }; return i }(); "function" == typeof define && define.amd ? define(function () { return LZString }) : "undefined" != typeof module && null != module && (module.exports = LZString);
 
     // Load the model
     if (options.model_file.length) {
